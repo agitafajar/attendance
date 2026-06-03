@@ -100,8 +100,8 @@ export default function DashboardPage() {
       user={user}
     >
       {dashboardQuery.isError ? (
-        <Card className="border-[#f0b5a8] bg-[#fff1ee] shadow-none">
-          <CardContent className="pt-6 text-sm text-[#9b2f1d]">
+        <Card className="border-[var(--brand-500)]/30 bg-[var(--accent-soft)] shadow-none">
+          <CardContent className="pt-6 text-sm text-[var(--brand-900)]">
             Gagal memuat dashboard. Silakan login ulang atau hubungi admin.
           </CardContent>
         </Card>
@@ -156,17 +156,17 @@ function AdminDashboardView({ dashboard }: { dashboard?: AdminDashboard }) {
         />
       </div>
 
-      <Card className="mt-4 border-[#d9d2c4] bg-[#fffdf8] shadow-[0_18px_50px_rgba(38,30,17,0.08)]">
+      <Card className="mt-4">
         <CardHeader className="flex flex-row items-center justify-between space-y-0">
           <div>
-            <CardTitle className="text-base text-[#17211d]">
+            <CardTitle className="text-base text-[var(--foreground)]">
               Activity Statistics
             </CardTitle>
-            <p className="mt-1 text-sm text-[#667063]">
+            <p className="mt-1 text-sm text-[var(--muted)]">
               Status kegiatan harian yang tercatat hari ini.
             </p>
           </div>
-          <div className="hidden h-10 w-10 items-center justify-center rounded-md bg-[#17211d] text-[#d7ff70] sm:flex">
+          <div className="hidden h-10 w-10 items-center justify-center rounded-md bg-[var(--brand-900)] text-[var(--brand-yellow)] sm:flex">
             <Activity className="h-5 w-5" />
           </div>
         </CardHeader>
@@ -258,15 +258,15 @@ function EmployeeDashboardView({ dashboard }: { dashboard?: EmployeeDashboard })
         />
       </div>
 
-      <Card className="mt-4 border-[#d9d2c4] bg-[#fffdf8] shadow-[0_18px_50px_rgba(38,30,17,0.08)]">
+      <Card className="mt-4">
         <CardHeader className="flex flex-row items-center justify-between space-y-0">
           <div>
-            <CardTitle className="text-base text-[#17211d]">My Profile</CardTitle>
-            <p className="mt-1 text-sm text-[#667063]">
+            <CardTitle className="text-base text-[var(--foreground)]">My Profile</CardTitle>
+            <p className="mt-1 text-sm text-[var(--muted)]">
               Identitas karyawan aktif untuk sesi ini.
             </p>
           </div>
-          <div className="hidden h-10 w-10 items-center justify-center rounded-md bg-[#17211d] text-[#d7ff70] sm:flex">
+          <div className="hidden h-10 w-10 items-center justify-center rounded-md bg-[var(--brand-900)] text-[var(--brand-yellow)] sm:flex">
             <ShieldCheck className="h-5 w-5" />
           </div>
         </CardHeader>
@@ -297,38 +297,38 @@ function MetricCard({
 }) {
   const tones = {
     charcoal: {
-      card: "border-[#d9d2c4] bg-[#fffdf8]",
-      icon: "bg-[#17211d] text-[#d7ff70]",
-      accent: "text-[#17211d]",
+      card: "border-[var(--border)] bg-[var(--surface)]",
+      icon: "bg-[var(--brand-900)] text-[var(--brand-yellow)]",
+      accent: "text-[var(--brand-900)]",
     },
     green: {
-      card: "border-[#c8dec2] bg-[#f8fff4]",
-      icon: "bg-[#d7ff70] text-[#17211d]",
-      accent: "text-[#27624d]",
+      card: "border-[var(--brand-900)]/15 bg-[var(--brand-900)]/5",
+      icon: "bg-[var(--brand-900)] text-white",
+      accent: "text-[var(--brand-900)]",
     },
     amber: {
-      card: "border-[#ead2a4] bg-[#fff9ea]",
-      icon: "bg-[#f0b84b] text-[#17211d]",
-      accent: "text-[#8a5b10]",
+      card: "border-[var(--brand-yellow)] bg-[var(--brand-yellow)]/18",
+      icon: "bg-[var(--brand-yellow)] text-[var(--brand-900)]",
+      accent: "text-[var(--brand-900)]",
     },
     rose: {
-      card: "border-[#efc5bd] bg-[#fff5f2]",
-      icon: "bg-[#d85d47] text-white",
-      accent: "text-[#9b2f1d]",
+      card: "border-[var(--brand-500)]/35 bg-[var(--brand-500)]/10",
+      icon: "bg-[var(--brand-700)] text-white",
+      accent: "text-[var(--brand-700)]",
     },
     teal: {
-      card: "border-[#badbd3] bg-[#f2fffb]",
-      icon: "bg-[#197c68] text-white",
-      accent: "text-[#197c68]",
+      card: "border-[var(--brand-700)]/20 bg-[var(--brand-700)]/7",
+      icon: "bg-[var(--brand-500)] text-white",
+      accent: "text-[var(--brand-700)]",
     },
   }[tone];
 
   return (
     <Card
-      className={`overflow-hidden shadow-[0_18px_50px_rgba(38,30,17,0.08)] ${tones.card}`}
+      className={`overflow-hidden shadow-[var(--shadow-soft)] ${tones.card}`}
     >
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-        <CardTitle className="text-sm font-medium text-[#667063]">{title}</CardTitle>
+        <CardTitle className="text-sm font-medium text-[var(--muted)]">{title}</CardTitle>
         <div className={`flex h-10 w-10 items-center justify-center rounded-md ${tones.icon}`}>
           {icon}
         </div>
@@ -337,7 +337,7 @@ function MetricCard({
         <div className={`text-3xl font-semibold tracking-normal ${tones.accent}`}>
           {valueText ?? value ?? "-"}
         </div>
-        <div className="mt-4 flex items-center gap-1 text-xs font-medium text-[#667063]">
+        <div className="mt-4 flex items-center gap-1 text-xs font-medium text-[var(--muted)]">
           <ArrowUpRight className="h-3.5 w-3.5" />
           Real-time summary
         </div>
@@ -356,9 +356,9 @@ function SmallStat({
   valueText?: string;
 }) {
   return (
-    <div className="rounded-md border border-[#e2dacd] bg-white p-3">
-      <p className="text-sm text-[#667063]">{label}</p>
-      <p className="mt-1 text-xl font-semibold text-[#17211d]">
+    <div className="rounded-md border border-[var(--border)] bg-white p-3">
+      <p className="text-sm text-[var(--muted)]">{label}</p>
+      <p className="mt-1 text-xl font-semibold text-[var(--foreground)]">
         {valueText ?? value ?? "-"}
       </p>
     </div>

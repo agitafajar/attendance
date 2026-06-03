@@ -6,9 +6,11 @@ type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
 };
 
 const variants = {
-  default: "bg-[#17211d] text-white shadow-sm hover:bg-[#26332d]",
-  outline: "border border-[#cfc7b8] bg-white text-[#17211d] hover:bg-[#f0eadf]",
-  ghost: "text-[#17211d] hover:bg-[#f0eadf]",
+  default:
+    "bg-[var(--primary)] text-[var(--primary-foreground)] shadow-sm hover:bg-[var(--primary-hover)]",
+  outline:
+    "border border-[var(--border-strong)] bg-[var(--surface)] text-[var(--foreground)] hover:bg-[var(--surface-soft)]",
+  ghost: "text-[var(--foreground)] hover:bg-[var(--surface-soft)]",
 };
 
 export function Button({

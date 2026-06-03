@@ -1,8 +1,30 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f4f1ea;
-  --foreground: #17211d;
+  --brand-900: #2c5ead;
+  --brand-700: #1591dc;
+  --brand-500: #4bb8fa;
+  --brand-100: #c4e2f5;
+  --brand-yellow: #eaf6ff;
+  --brand-cream: #f4faff;
+
+  --background: #f4faff;
+  --foreground: #10243a;
+  --surface: #ffffff;
+  --surface-soft: #eef8ff;
+  --surface-muted: #eaf6ff;
+  --border: #d8eaf7;
+  --border-strong: #b8d8ed;
+  --muted: #60778a;
+  --muted-strong: #38566f;
+
+  --primary: var(--brand-900);
+  --primary-hover: #234f94;
+  --primary-foreground: #ffffff;
+  --accent: var(--brand-700);
+  --accent-soft: var(--brand-100);
+  --warning: var(--brand-yellow);
+  --shadow-soft: 0 18px 50px rgba(44, 94, 173, 0.1);
 }
 
 @theme inline {
@@ -38,21 +60,21 @@ body {
 }
 
 main table {
-  border-color: #d8d2c6;
+  border-color: var(--border);
 }
 
 main .overflow-x-auto {
-  border: 1px solid #e2dccf;
+  border: 1px solid var(--border);
   border-radius: 8px;
 }
 
 main thead tr {
-  border-color: #d8d2c6;
-  background: #fffaf0;
+  border-color: var(--border);
+  background: var(--surface-muted);
 }
 
 main th {
-  color: #667063;
+  color: var(--muted);
   white-space: nowrap;
 }
 
@@ -63,11 +85,11 @@ main tbody tr {
 }
 
 main tbody tr:hover {
-  background: #fffaf3;
+  background: var(--surface-soft);
 }
 
 main td {
-  color: #252c28;
+  color: var(--foreground);
   vertical-align: top;
 }
 

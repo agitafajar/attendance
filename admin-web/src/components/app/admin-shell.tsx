@@ -93,11 +93,11 @@ export function AdminShell({
   }
 
   return (
-    <main className="min-h-screen bg-[#f4f1ea] text-[#17211d]">
-      <aside className="fixed inset-y-0 left-0 hidden w-64 border-r border-[#d8d2c6] bg-[#17211d] text-white lg:block">
+    <main className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
+      <aside className="fixed inset-y-0 left-0 hidden w-64 border-r border-[var(--brand-900)] bg-[var(--brand-900)] text-white lg:block">
         <div className="border-b border-white/10 px-5 py-5">
           <div className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-md bg-[#d7ff70] text-[#17211d]">
+            <div className="flex h-9 w-9 items-center justify-center rounded-md bg-[var(--brand-yellow)] text-[var(--brand-900)]">
               <BarChart3 className="h-5 w-5" />
             </div>
             <div>
@@ -118,7 +118,7 @@ export function AdminShell({
                 className={cn(
                   "flex h-10 items-center gap-3 rounded-md px-3 text-sm font-medium text-white/62 transition-colors hover:bg-white/8 hover:text-white",
                   isActive &&
-                    "bg-[#d7ff70] text-[#17211d] hover:bg-[#d7ff70] hover:text-[#17211d]",
+                    "bg-[var(--brand-yellow)] text-[var(--brand-900)] hover:bg-[var(--brand-yellow)] hover:text-[var(--brand-900)]",
                 )}
               >
                 <Icon className="h-4 w-4" />
@@ -130,21 +130,20 @@ export function AdminShell({
       </aside>
 
       <section className="lg:pl-64">
-        <header className="border-b border-[#d8d2c6] bg-[#fffdf8]/92 backdrop-blur">
+        <header className="border-b border-[var(--border)] bg-[var(--surface)]/92 backdrop-blur">
           <div className="flex min-h-16 items-center justify-between gap-4 px-5 py-4 lg:px-6">
             <div>
-              <h1 className="text-xl font-semibold text-[#17211d]">{title}</h1>
+              <h1 className="text-xl font-semibold text-[var(--foreground)]">{title}</h1>
               {description ? (
-                <p className="mt-1 text-sm text-[#667063]">{description}</p>
+                <p className="mt-1 text-sm text-[var(--muted)]">{description}</p>
               ) : null}
             </div>
             <div className="flex items-center gap-3">
-              <span className="hidden max-w-56 truncate text-sm text-[#667063] sm:inline">
+              <span className="hidden max-w-56 truncate text-sm text-[var(--muted)] sm:inline">
                 {user?.email}
               </span>
               <Button
                 variant="outline"
-                className="border-[#cfc7b8] bg-white text-[#17211d] hover:bg-[#f0eadf]"
                 onClick={logout}
               >
                 <LogOut className="h-4 w-4" />

@@ -57,6 +57,7 @@ services:
     restart: unless-stopped
     environment:
       NEXT_PUBLIC_API_BASE_URL: ${ADMIN_WEB_API_BASE_URL:-/api/backend}
+      API_UPSTREAM_URL: ${ADMIN_WEB_API_UPSTREAM_URL:-https://api.financialku.online/api/v1}
     depends_on:
       - backend
     ports:
