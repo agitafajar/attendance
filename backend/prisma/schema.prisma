@@ -1,0 +1,323 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum RoleName {
+  ADMIN
+  SUPERVISOR
+  EMPLOYEE
+}
+
+enum AttendanceStatus {
+  DRAFT
+  PRESENT
+  LATE
+  ABSENT
+  LEAVE
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+}
+
+enum ApprovalStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REJECTED
+}
+
+enum LeaveType {
+  SICK
+  LEAVE
+  ANNUAL
+}
+
+enum ApprovalTargetType {
+  ATTENDANCE
+  DAILY_ACTIVITY
+  LEAVE_REQUEST
+}
+
+enum ApprovalAction {
+  SUBMITTED
+  APPROVED
+  REJECTED
+}
+
+model Role {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        RoleName @unique
+  description String?
+  users       User[]
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("roles")
+}
+
+model User {
+  id                  String          @id @default(uuid()) @db.Uuid
+  roleId              String          @map("role_id") @db.Uuid
+  role                Role            @relation(fields: [roleId], references: [id])
+  email               String          @unique
+  passwordHash        String          @map("password_hash")
+  fullName            String          @map("full_name")
+  phone               String?
+  isActive            Boolean         @default(true) @map("is_active")
+  refreshTokenHash    String?         @map("refresh_token_hash")
+  lastLoginAt         DateTime?       @map("last_login_at")
+  employee            Employee?
+  supervisor          Supervisor?
+  attendanceApprovals Attendance[]    @relation("AttendanceApprovedBy")
+  activityApprovals   DailyActivity[] @relation("ActivityApprovedBy")
+  leaveApprovals      LeaveRequest[]  @relation("LeaveApprovedBy")
+  approvalLogs        ApprovalLog[]   @relation("ApprovalLogApprover")
+  createdAt           DateTime        @default(now()) @map("created_at")
+  updatedAt           DateTime        @updatedAt @map("updated_at")
+  deletedAt           DateTime?       @map("deleted_at")
+
+  @@index([roleId])
+  @@map("users")
+}
+
+model Client {
+  id           String               @id @default(uuid()) @db.Uuid
+  code         String               @unique
+  name         String
+  address      String?
+  contactName  String?              @map("contact_name")
+  contactPhone String?              @map("contact_phone")
+  isActive     Boolean              @default(true) @map("is_active")
+  locations    WorkLocation[]
+  assignments  EmployeeAssignment[]
+  createdAt    DateTime             @default(now()) @map("created_at")
+  updatedAt    DateTime             @updatedAt @map("updated_at")
+  deletedAt    DateTime?            @map("deleted_at")
+
+  @@map("clients")
+}
+
+model WorkLocation {
+  id                  String               @id @default(uuid()) @db.Uuid
+  clientId            String               @map("client_id") @db.Uuid
+  client              Client               @relation(fields: [clientId], references: [id])
+  name                String
+  address             String?
+  latitude            Decimal              @db.Decimal(10, 7)
+  longitude           Decimal              @db.Decimal(10, 7)
+  geofenceRadiusMeter Int                  @default(100) @map("geofence_radius_meter")
+  isActive            Boolean              @default(true) @map("is_active")
+  assignments         EmployeeAssignment[]
+  createdAt           DateTime             @default(now()) @map("created_at")
+  updatedAt           DateTime             @updatedAt @map("updated_at")
+  deletedAt           DateTime?            @map("deleted_at")
+
+  @@unique([clientId, name])
+  @@index([clientId])
+  @@map("work_locations")
+}
+
+model Employee {
+  id               String               @id @default(uuid()) @db.Uuid
+  userId           String               @unique @map("user_id") @db.Uuid
+  user             User                 @relation(fields: [userId], references: [id])
+  supervisorId     String?              @map("supervisor_id") @db.Uuid
+  supervisor       Supervisor?          @relation(fields: [supervisorId], references: [id])
+  employeeNumber   String               @unique @map("employee_number")
+  position         String?
+  joinDate         DateTime?            @map("join_date") @db.Date
+  employmentStatus String?              @map("employment_status")
+  assignments      EmployeeAssignment[]
+  attendances      Attendance[]
+  dailyActivities  DailyActivity[]
+  leaveRequests    LeaveRequest[]
+  createdAt        DateTime             @default(now()) @map("created_at")
+  updatedAt        DateTime             @updatedAt @map("updated_at")
+  deletedAt        DateTime?            @map("deleted_at")
+
+  @@index([supervisorId])
+  @@map("employees")
+}
+
+model Supervisor {
+  id               String     @id @default(uuid()) @db.Uuid
+  userId           String     @unique @map("user_id") @db.Uuid
+  user             User       @relation(fields: [userId], references: [id])
+  supervisorNumber String     @unique @map("supervisor_number")
+  employees        Employee[]
+  createdAt        DateTime   @default(now()) @map("created_at")
+  updatedAt        DateTime   @updatedAt @map("updated_at")
+  deletedAt        DateTime?  @map("deleted_at")
+
+  @@map("supervisors")
+}
+
+model Shift {
+  id                 String               @id @default(uuid()) @db.Uuid
+  code               String               @unique
+  name               String
+  startTime          DateTime             @map("start_time") @db.Time
+  endTime            DateTime             @map("end_time") @db.Time
+  gracePeriodMinutes Int                  @default(0) @map("grace_period_minutes")
+  isActive           Boolean              @default(true) @map("is_active")
+  assignments        EmployeeAssignment[]
+  createdAt          DateTime             @default(now()) @map("created_at")
+  updatedAt          DateTime             @updatedAt @map("updated_at")
+  deletedAt          DateTime?            @map("deleted_at")
+
+  @@map("shifts")
+}
+
+model EmployeeAssignment {
+  id             String       @id @default(uuid()) @db.Uuid
+  employeeId     String       @map("employee_id") @db.Uuid
+  employee       Employee     @relation(fields: [employeeId], references: [id])
+  clientId       String       @map("client_id") @db.Uuid
+  client         Client       @relation(fields: [clientId], references: [id])
+  workLocationId String       @map("work_location_id") @db.Uuid
+  workLocation   WorkLocation @relation(fields: [workLocationId], references: [id])
+  shiftId        String       @map("shift_id") @db.Uuid
+  shift          Shift        @relation(fields: [shiftId], references: [id])
+  startDate      DateTime     @map("start_date") @db.Date
+  endDate        DateTime?    @map("end_date") @db.Date
+  isActive       Boolean      @default(true) @map("is_active")
+  attendances    Attendance[]
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+  deletedAt      DateTime?    @map("deleted_at")
+
+  @@unique([employeeId, clientId, workLocationId, shiftId, startDate])
+  @@index([employeeId])
+  @@index([clientId])
+  @@index([workLocationId])
+  @@index([shiftId])
+  @@map("employee_assignments")
+}
+
+model Attendance {
+  id                String             @id @default(uuid()) @db.Uuid
+  employeeId        String             @map("employee_id") @db.Uuid
+  employee          Employee           @relation(fields: [employeeId], references: [id])
+  assignmentId      String             @map("assignment_id") @db.Uuid
+  assignment        EmployeeAssignment @relation(fields: [assignmentId], references: [id])
+  attendanceDate    DateTime           @map("attendance_date") @db.Date
+  checkInTime       DateTime?          @map("check_in_time")
+  checkOutTime      DateTime?          @map("check_out_time")
+  checkInLatitude   Decimal?           @map("check_in_latitude") @db.Decimal(10, 7)
+  checkInLongitude  Decimal?           @map("check_in_longitude") @db.Decimal(10, 7)
+  checkOutLatitude  Decimal?           @map("check_out_latitude") @db.Decimal(10, 7)
+  checkOutLongitude Decimal?           @map("check_out_longitude") @db.Decimal(10, 7)
+  checkInPhoto      String?            @map("check_in_photo")
+  checkOutPhoto     String?            @map("check_out_photo")
+  distanceMeter     Decimal?           @map("distance_meter") @db.Decimal(10, 2)
+  lateMinutes       Int?               @default(0) @map("late_minutes")
+  workMinutes       Int?               @default(0) @map("work_minutes")
+  status            AttendanceStatus   @default(PRESENT)
+  approvedById      String?            @map("approved_by") @db.Uuid
+  approvedBy        User?              @relation("AttendanceApprovedBy", fields: [approvedById], references: [id])
+  approvedAt        DateTime?          @map("approved_at")
+  rejectionNote     String?            @map("rejection_note")
+  dailyActivities   DailyActivity[]
+  approvalLogs      ApprovalLog[]
+  createdAt         DateTime           @default(now()) @map("created_at")
+  updatedAt         DateTime           @updatedAt @map("updated_at")
+  deletedAt         DateTime?          @map("deleted_at")
+
+  @@unique([employeeId, attendanceDate])
+  @@index([assignmentId])
+  @@index([status])
+  @@map("attendances")
+}
+
+model DailyActivity {
+  id            String               @id @default(uuid()) @db.Uuid
+  employeeId    String               @map("employee_id") @db.Uuid
+  employee      Employee             @relation(fields: [employeeId], references: [id])
+  attendanceId  String?              @map("attendance_id") @db.Uuid
+  attendance    Attendance?          @relation(fields: [attendanceId], references: [id])
+  activityDate  DateTime             @map("activity_date") @db.Date
+  title         String
+  description   String
+  latitude      Decimal?             @db.Decimal(10, 7)
+  longitude     Decimal?             @db.Decimal(10, 7)
+  status        ApprovalStatus       @default(DRAFT)
+  approvedById  String?              @map("approved_by") @db.Uuid
+  approvedBy    User?                @relation("ActivityApprovedBy", fields: [approvedById], references: [id])
+  approvedAt    DateTime?            @map("approved_at")
+  rejectionNote String?              @map("rejection_note")
+  photos        DailyActivityPhoto[]
+  approvalLogs  ApprovalLog[]
+  createdAt     DateTime             @default(now()) @map("created_at")
+  updatedAt     DateTime             @updatedAt @map("updated_at")
+  deletedAt     DateTime?            @map("deleted_at")
+
+  @@index([employeeId])
+  @@index([attendanceId])
+  @@index([status])
+  @@map("daily_activities")
+}
+
+model DailyActivityPhoto {
+  id              String        @id @default(uuid()) @db.Uuid
+  dailyActivityId String        @map("daily_activity_id") @db.Uuid
+  dailyActivity   DailyActivity @relation(fields: [dailyActivityId], references: [id])
+  photoUrl        String        @map("photo_url")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+  deletedAt       DateTime?     @map("deleted_at")
+
+  @@index([dailyActivityId])
+  @@map("daily_activity_photos")
+}
+
+model LeaveRequest {
+  id            String         @id @default(uuid()) @db.Uuid
+  employeeId    String         @map("employee_id") @db.Uuid
+  employee      Employee       @relation(fields: [employeeId], references: [id])
+  type          LeaveType
+  startDate     DateTime       @map("start_date") @db.Date
+  endDate       DateTime       @map("end_date") @db.Date
+  reason        String
+  attachmentUrl String?        @map("attachment_url")
+  status        ApprovalStatus @default(SUBMITTED)
+  approvedById  String?        @map("approved_by") @db.Uuid
+  approvedBy    User?          @relation("LeaveApprovedBy", fields: [approvedById], references: [id])
+  approvedAt    DateTime?      @map("approved_at")
+  rejectionNote String?        @map("rejection_note")
+  approvalLogs  ApprovalLog[]
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+  deletedAt     DateTime?      @map("deleted_at")
+
+  @@index([employeeId])
+  @@index([status])
+  @@map("leave_requests")
+}
+
+model ApprovalLog {
+  id              String             @id @default(uuid()) @db.Uuid
+  approverId      String             @map("approver_id") @db.Uuid
+  approver        User               @relation("ApprovalLogApprover", fields: [approverId], references: [id])
+  attendanceId    String?            @map("attendance_id") @db.Uuid
+  attendance      Attendance?        @relation(fields: [attendanceId], references: [id])
+  dailyActivityId String?            @map("daily_activity_id") @db.Uuid
+  dailyActivity   DailyActivity?     @relation(fields: [dailyActivityId], references: [id])
+  leaveRequestId  String?            @map("leave_request_id") @db.Uuid
+  leaveRequest    LeaveRequest?      @relation(fields: [leaveRequestId], references: [id])
+  targetType      ApprovalTargetType @map("target_type")
+  action          ApprovalAction
+  notes           String?
+  createdAt       DateTime           @default(now()) @map("created_at")
+  updatedAt       DateTime           @updatedAt @map("updated_at")
+
+  @@index([approverId])
+  @@index([attendanceId])
+  @@index([dailyActivityId])
+  @@index([leaveRequestId])
+  @@map("approval_logs")
+}

@@ -1,0 +1,201 @@
+erDiagram
+  roles ||--o{ users : has
+  users ||--o| employees : owns
+  users ||--o| supervisors : owns
+  supervisors ||--o{ employees : supervises
+  clients ||--o{ work_locations : has
+  clients ||--o{ employee_assignments : contracts
+  work_locations ||--o{ employee_assignments : places
+  shifts ||--o{ employee_assignments : schedules
+  employees ||--o{ employee_assignments : assigned
+  employees ||--o{ attendances : records
+  employee_assignments ||--o{ attendances : validates
+  employees ||--o{ daily_activities : writes
+  attendances ||--o{ daily_activities : links
+  daily_activities ||--o{ daily_activity_photos : contains
+  employees ||--o{ leave_requests : requests
+  users ||--o{ approval_logs : acts
+  attendances ||--o{ approval_logs : attendance_target
+  daily_activities ||--o{ approval_logs : activity_target
+  leave_requests ||--o{ approval_logs : leave_target
+
+  roles {
+    uuid id PK
+    string name UK
+    string description
+    datetime created_at
+    datetime updated_at
+  }
+
+  users {
+    uuid id PK
+    uuid role_id FK
+    string email UK
+    string password_hash
+    string full_name
+    string phone
+    boolean is_active
+    string refresh_token_hash
+    datetime last_login_at
+    datetime created_at
+    datetime updated_at
+    datetime deleted_at
+  }
+
+  clients {
+    uuid id PK
+    string code UK
+    string name
+    string address
+    string contact_name
+    string contact_phone
+    boolean is_active
+    datetime created_at
+    datetime updated_at
+    datetime deleted_at
+  }
+
+  work_locations {
+    uuid id PK
+    uuid client_id FK
+    string name
+    string address
+    decimal latitude
+    decimal longitude
+    int geofence_radius_meter
+    boolean is_active
+    datetime created_at
+    datetime updated_at
+    datetime deleted_at
+  }
+
+  employees {
+    uuid id PK
+    uuid user_id FK
+    uuid supervisor_id FK
+    string employee_number UK
+    string position
+    date join_date
+    string employment_status
+    datetime created_at
+    datetime updated_at
+    datetime deleted_at
+  }
+
+  supervisors {
+    uuid id PK
+    uuid user_id FK
+    string supervisor_number UK
+    datetime created_at
+    datetime updated_at
+    datetime deleted_at
+  }
+
+  employee_assignments {
+    uuid id PK
+    uuid employee_id FK
+    uuid client_id FK
+    uuid work_location_id FK
+    uuid shift_id FK
+    date start_date
+    date end_date
+    boolean is_active
+    datetime created_at
+    datetime updated_at
+    datetime deleted_at
+  }
+
+  shifts {
+    uuid id PK
+    string code UK
+    string name
+    time start_time
+    time end_time
+    int grace_period_minutes
+    boolean is_active
+    datetime created_at
+    datetime updated_at
+    datetime deleted_at
+  }
+
+  attendances {
+    uuid id PK
+    uuid employee_id FK
+    uuid assignment_id FK
+    date attendance_date
+    datetime check_in_time
+    datetime check_out_time
+    decimal check_in_latitude
+    decimal check_in_longitude
+    decimal check_out_latitude
+    decimal check_out_longitude
+    string check_in_photo
+    string check_out_photo
+    decimal distance_meter
+    int late_minutes
+    int work_minutes
+    enum status
+    uuid approved_by FK
+    datetime approved_at
+    string rejection_note
+    datetime created_at
+    datetime updated_at
+    datetime deleted_at
+  }
+
+  daily_activities {
+    uuid id PK
+    uuid employee_id FK
+    uuid attendance_id FK
+    date activity_date
+    string title
+    string description
+    decimal latitude
+    decimal longitude
+    enum status
+    uuid approved_by FK
+    datetime approved_at
+    string rejection_note
+    datetime created_at
+    datetime updated_at
+    datetime deleted_at
+  }
+
+  daily_activity_photos {
+    uuid id PK
+    uuid daily_activity_id FK
+    string photo_url
+    datetime created_at
+    datetime updated_at
+    datetime deleted_at
+  }
+
+  leave_requests {
+    uuid id PK
+    uuid employee_id FK
+    enum type
+    date start_date
+    date end_date
+    string reason
+    string attachment_url
+    enum status
+    uuid approved_by FK
+    datetime approved_at
+    string rejection_note
+    datetime created_at
+    datetime updated_at
+    datetime deleted_at
+  }
+
+  approval_logs {
+    uuid id PK
+    uuid approver_id FK
+    uuid attendance_id FK
+    uuid daily_activity_id FK
+    uuid leave_request_id FK
+    enum target_type
+    enum action
+    string notes
+    datetime created_at
+    datetime updated_at
+  }
