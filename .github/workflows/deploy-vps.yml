@@ -92,7 +92,8 @@ jobs:
           docker compose build backend admin-web
           docker compose run --rm backend npm run prisma:deploy
           docker compose run --rm backend npm run prisma:seed
-          docker compose up -d --remove-orphans
+          docker compose up -d --force-recreate --no-deps backend admin-web
+          docker compose up -d --remove-orphans nginx
           docker image prune -f
           docker compose ps
           REMOTE
