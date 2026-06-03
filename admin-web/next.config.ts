@@ -10,7 +10,7 @@ const nextConfig: NextConfig = {
           {
             key: "Content-Security-Policy",
             value:
-              "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; object-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://api.financialku.online; font-src 'self' data:; connect-src 'self' https://api.financialku.online; form-action 'self'; upgrade-insecure-requests",
+              "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; object-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://api.financialku.online; font-src 'self' data:; connect-src 'self' https://api.financialku.online; form-action 'self'; upgrade-insecure-requests",
           },
           {
             key: "Referrer-Policy",
