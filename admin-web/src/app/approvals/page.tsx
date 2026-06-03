@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { SummaryChip } from "@/components/ui/summary-chip";
+import { EmptyTableRow, ErrorTableRow, TableSkeletonRows } from "@/components/ui/table-state";
 import { api } from "@/lib/api";
 
 const APPROVAL_ROLES = ["ADMIN", "SUPERVISOR"] as const;
@@ -183,6 +184,8 @@ export default function ApprovalsPage() {
           emptyText="Tidak ada absensi pending."
           rows={attendancesQuery.data}
           isLoading={attendancesQuery.isLoading}
+          isError={attendancesQuery.isError}
+          onRetry={() => attendancesQuery.refetch()}
           total={attendancesQuery.data?.length ?? 0}
           renderRow={(attendance) => (
             <tr key={attendance.id} className="border-b border-neutral-100">
@@ -224,6 +227,8 @@ export default function ApprovalsPage() {
           emptyText="Tidak ada aktivitas pending."
           rows={activitiesQuery.data}
           isLoading={activitiesQuery.isLoading}
+          isError={activitiesQuery.isError}
+          onRetry={() => activitiesQuery.refetch()}
           total={activitiesQuery.data?.length ?? 0}
           renderRow={(activity) => (
             <tr key={activity.id} className="border-b border-neutral-100">
@@ -261,6 +266,8 @@ export default function ApprovalsPage() {
           emptyText="Tidak ada izin pending."
           rows={leavesQuery.data}
           isLoading={leavesQuery.isLoading}
+          isError={leavesQuery.isError}
+          onRetry={() => leavesQuery.refetch()}
           total={leavesQuery.data?.length ?? 0}
           renderRow={(leave) => (
             <tr key={leave.id} className="border-b border-neutral-100">
@@ -304,6 +311,8 @@ function ApprovalSection<T>({
   headers,
   rows,
   isLoading,
+  isError,
+  onRetry,
   total,
   emptyText,
   renderRow,
@@ -312,6 +321,8 @@ function ApprovalSection<T>({
   headers: string[];
   rows?: T[];
   isLoading: boolean;
+  isError: boolean;
+  onRetry: () => void;
   total: number;
   emptyText: string;
   renderRow: (row: T) => ReactNode;
@@ -342,23 +353,18 @@ function ApprovalSection<T>({
               </tr>
             </thead>
             <tbody>
-              {rows?.map(renderRow)}
-              {!isLoading && !rows?.length ? (
-                <tr>
-                  <td className="py-6 text-neutral-500" colSpan={headers.length}>
-                    {emptyText}
-                  </td>
-                </tr>
+              {isLoading ? <TableSkeletonRows colSpan={headers.length} /> : null}
+              {isError ? (
+                <ErrorTableRow
+                  colSpan={headers.length}
+                  title={`${title} gagal dimuat`}
+                  description="Antrian approval belum bisa ditampilkan. Coba muat ulang atau cek sesi login."
+                  onRetry={onRetry}
+                />
               ) : null}
-              {isLoading ? (
-                <tr>
-                  <td className="py-6 text-neutral-500" colSpan={headers.length}>
-                    <span className="inline-flex items-center gap-2">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Memuat data...
-                    </span>
-                  </td>
-                </tr>
+              {!isLoading && !isError ? rows?.map(renderRow) : null}
+              {!isLoading && !isError && !rows?.length ? (
+                <EmptyTableRow colSpan={headers.length}>{emptyText}</EmptyTableRow>
               ) : null}
             </tbody>
           </table>

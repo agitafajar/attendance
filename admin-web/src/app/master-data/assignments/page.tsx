@@ -13,11 +13,11 @@ import { Label } from "@/components/ui/label";
 import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { EmptyTableRow, FormError, LoadingTableRow } from "@/components/ui/table-state";
+import { EmptyTableRow, ErrorTableRow, FormError, LoadingTableRow } from "@/components/ui/table-state";
 import { useToast } from "@/components/ui/toast";
 import { api } from "@/lib/api";
 
-const MASTER_DATA_ROLES = ["ADMIN", "SUPERVISOR"] as const;
+const MASTER_DATA_ROLES = ["ADMIN"] as const;
 
 type Employee = {
   id: string;
@@ -390,13 +390,21 @@ export default function AssignmentsPage() {
                     ) : null}
                   </tr>
                 ))}
-                {!assignmentsQuery.isLoading && !assignmentsQuery.data?.length ? (
+                {!assignmentsQuery.isLoading && !assignmentsQuery.isError && !assignmentsQuery.data?.length ? (
                   <EmptyTableRow colSpan={canManageMasterData ? 7 : 6}>
                     Belum ada assignment.
                   </EmptyTableRow>
                 ) : null}
                 {assignmentsQuery.isLoading ? (
                   <LoadingTableRow colSpan={canManageMasterData ? 7 : 6} />
+                ) : null}
+                {assignmentsQuery.isError ? (
+                  <ErrorTableRow
+                    colSpan={canManageMasterData ? 7 : 6}
+                    title="Assignment gagal dimuat"
+                    description="Data assignment belum bisa ditampilkan. Coba muat ulang beberapa saat lagi."
+                    onRetry={() => assignmentsQuery.refetch()}
+                  />
                 ) : null}
               </tbody>
             </table>

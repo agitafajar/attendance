@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button";
 
 const allRoles: RoleName[] = ["ADMIN", "SUPERVISOR", "EMPLOYEE"];
 const adminAndSupervisor: RoleName[] = ["ADMIN", "SUPERVISOR"];
+const adminOnly: RoleName[] = ["ADMIN"];
 
 const navigation: Array<{
   href: string;
@@ -35,38 +36,38 @@ const navigation: Array<{
     href: "/master-data/clients",
     label: "Clients",
     icon: Building2,
-    roles: adminAndSupervisor,
+    roles: adminOnly,
   },
   {
     href: "/master-data/work-locations",
     label: "Work Locations",
     icon: MapPin,
-    roles: adminAndSupervisor,
+    roles: adminOnly,
   },
-  { href: "/master-data/shifts", label: "Shifts", icon: Clock, roles: adminAndSupervisor },
+  { href: "/master-data/shifts", label: "Shifts", icon: Clock, roles: adminOnly },
   {
     href: "/master-data/supervisors",
     label: "Supervisors",
     icon: Users,
-    roles: adminAndSupervisor,
+    roles: adminOnly,
   },
   {
     href: "/master-data/employees",
     label: "Employees",
     icon: Users,
-    roles: adminAndSupervisor,
+    roles: adminOnly,
   },
   {
     href: "/master-data/assignments",
     label: "Assignments",
     icon: ClipboardCheck,
-    roles: adminAndSupervisor,
+    roles: adminOnly,
   },
   { href: "/attendances", label: "Attendance", icon: CalendarClock, roles: allRoles },
   { href: "/daily-activities", label: "Activities", icon: Activity, roles: allRoles },
   { href: "/leave-requests", label: "Leave Requests", icon: NotebookTabs, roles: allRoles },
   { href: "/approvals", label: "Approvals", icon: ClipboardCheck, roles: adminAndSupervisor },
-  { href: "/reports", label: "Reports", icon: FileText, roles: adminAndSupervisor },
+  { href: "/reports", label: "Reports", icon: FileText, roles: adminOnly },
 ];
 
 export function AdminShell({

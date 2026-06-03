@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Loader2, NotebookTabs, RotateCcw } from "lucide-react";
+import { NotebookTabs, RotateCcw } from "lucide-react";
 import { AdminShell } from "@/components/app/admin-shell";
 import { useAuthGuard } from "@/components/app/use-auth-guard";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { SummaryChip } from "@/components/ui/summary-chip";
+import { EmptyTableRow, ErrorTableRow, TableSkeletonRows } from "@/components/ui/table-state";
 import { api } from "@/lib/api";
 
 type LeaveRequest = {
@@ -197,68 +198,65 @@ export default function LeaveRequestsPage() {
                 </tr>
               </thead>
               <tbody>
-                {rows.map((leave) => (
-                  <tr key={leave.id} className="border-b border-neutral-100">
-                    <td className="py-3 pr-4">
-                      {formatDate(leave.startDate)} - {formatDate(leave.endDate)}
-                    </td>
-                    <td className="py-3 pr-4">
-                      <p className="font-medium">
-                        {leave.employee.employeeNumber} -{" "}
-                        {leave.employee.user.fullName}
-                      </p>
-                      <p className="mt-1 text-xs text-neutral-500">
-                        {leave.employee.user.email}
-                      </p>
-                    </td>
-                    <td className="py-3 pr-4">
-                      {leave.employee.supervisor?.user.fullName || "-"}
-                    </td>
-                    <td className="py-3 pr-4">{leave.type}</td>
-                    <td className="py-3 pr-4">
-                      <p className="line-clamp-2 max-w-sm">{leave.reason}</p>
-                      {leave.rejectionNote ? (
-                        <p className="mt-1 text-xs text-red-600">
-                          {leave.rejectionNote}
-                        </p>
-                      ) : null}
-                    </td>
-                    <td className="py-3 pr-4">
-                      {leave.attachmentUrl ? (
-                        <a
-                          href={leave.attachmentUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="font-medium text-neutral-950 underline underline-offset-4"
-                        >
-                          Buka
-                        </a>
-                      ) : (
-                        "-"
-                      )}
-                    </td>
-                    <td className="py-3 pr-4">{leave.approvedBy?.fullName || "-"}</td>
-                    <td className="py-3 pr-4">
-                      <StatusBadge status={leave.status} />
-                    </td>
-                  </tr>
-                ))}
-                {!leaveRequestsQuery.isLoading && !leaveRequestsQuery.data?.length ? (
-                  <tr>
-                    <td className="py-6 text-neutral-500" colSpan={8}>
-                      Belum ada pengajuan izin untuk filter ini.
-                    </td>
-                  </tr>
+                {leaveRequestsQuery.isLoading ? <TableSkeletonRows colSpan={8} /> : null}
+                {leaveRequestsQuery.isError ? (
+                  <ErrorTableRow
+                    colSpan={8}
+                    title="Leave request gagal dimuat"
+                    description="Data pengajuan izin belum bisa ditampilkan. Coba muat ulang atau cek sesi login."
+                    onRetry={() => leaveRequestsQuery.refetch()}
+                  />
                 ) : null}
-                {leaveRequestsQuery.isLoading ? (
-                  <tr>
-                    <td className="py-8 text-neutral-500" colSpan={8}>
-                      <span className="inline-flex items-center gap-2">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Memuat data leave requests...
-                      </span>
-                    </td>
-                  </tr>
+                {!leaveRequestsQuery.isLoading && !leaveRequestsQuery.isError
+                  ? rows.map((leave) => (
+                      <tr key={leave.id} className="border-b border-neutral-100">
+                        <td className="py-3 pr-4">
+                          {formatDate(leave.startDate)} - {formatDate(leave.endDate)}
+                        </td>
+                        <td className="py-3 pr-4">
+                          <p className="font-medium">
+                            {leave.employee.employeeNumber} -{" "}
+                            {leave.employee.user.fullName}
+                          </p>
+                          <p className="mt-1 text-xs text-neutral-500">
+                            {leave.employee.user.email}
+                          </p>
+                        </td>
+                        <td className="py-3 pr-4">
+                          {leave.employee.supervisor?.user.fullName || "-"}
+                        </td>
+                        <td className="py-3 pr-4">{leave.type}</td>
+                        <td className="py-3 pr-4">
+                          <p className="line-clamp-2 max-w-sm">{leave.reason}</p>
+                          {leave.rejectionNote ? (
+                            <p className="mt-1 text-xs text-red-600">
+                              {leave.rejectionNote}
+                            </p>
+                          ) : null}
+                        </td>
+                        <td className="py-3 pr-4">
+                          {leave.attachmentUrl ? (
+                            <a
+                              href={leave.attachmentUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="font-medium text-neutral-950 underline underline-offset-4"
+                            >
+                              Buka
+                            </a>
+                          ) : (
+                            "-"
+                          )}
+                        </td>
+                        <td className="py-3 pr-4">{leave.approvedBy?.fullName || "-"}</td>
+                        <td className="py-3 pr-4">
+                          <StatusBadge status={leave.status} />
+                        </td>
+                      </tr>
+                    ))
+                  : null}
+                {!leaveRequestsQuery.isLoading && !leaveRequestsQuery.isError && !rows.length ? (
+                  <EmptyTableRow colSpan={8}>Belum ada pengajuan izin untuk filter ini.</EmptyTableRow>
                 ) : null}
               </tbody>
             </table>

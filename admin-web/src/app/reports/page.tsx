@@ -12,9 +12,15 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { SummaryChip } from "@/components/ui/summary-chip";
+import {
+  EmptyTableRow,
+  ErrorTableRow,
+  QueryErrorState,
+  TableSkeletonRows,
+} from "@/components/ui/table-state";
 import { api } from "@/lib/api";
 
-const REPORT_ROLES = ["ADMIN", "SUPERVISOR"] as const;
+const REPORT_ROLES = ["ADMIN"] as const;
 
 type ReportType =
   | "daily-attendance"
@@ -280,6 +286,20 @@ export default function ReportsPage() {
           </div>
         </CardHeader>
         <CardContent>
+          {employeesQuery.isError || clientsQuery.isError || locationsQuery.isError ? (
+            <div className="mb-4">
+              <QueryErrorState
+                title="Opsi filter gagal dimuat"
+                description="Sebagian pilihan employee, client, atau lokasi belum tersedia. Coba muat ulang opsi filter."
+                onRetry={() => {
+                  employeesQuery.refetch();
+                  clientsQuery.refetch();
+                  locationsQuery.refetch();
+                }}
+              />
+            </div>
+          ) : null}
+
           <div className="grid gap-3 lg:grid-cols-4">
             <div className="space-y-2">
               <Label htmlFor="reportType">Jenis Report</Label>
@@ -418,12 +438,6 @@ export default function ReportsPage() {
           <SummaryChip label={`${previewRows.length} / ${rows.length} rows`} value="Preview" />
         </CardHeader>
         <CardContent>
-          {reportQuery.isError ? (
-            <div className="mb-4 rounded-md border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
-              Gagal memuat report. Cek filter atau role akun.
-            </div>
-          ) : null}
-
           <div className="overflow-x-auto">
             <table className="w-full min-w-[1040px] border-collapse text-sm">
               <thead>
@@ -436,31 +450,32 @@ export default function ReportsPage() {
                 </tr>
               </thead>
               <tbody>
-                {previewRows.map((row, index) => (
-                  <tr key={index} className="border-b border-neutral-100">
-                    {columns.map((column) => (
-                      <td key={column.key} className="py-3 pr-4">
-                        {formatReportCell(row, column.key)}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-                {!reportQuery.isLoading && !rows.length ? (
-                  <tr>
-                    <td className="py-6 text-neutral-500" colSpan={columns.length}>
-                      Belum ada data untuk kombinasi filter ini.
-                    </td>
-                  </tr>
-                ) : null}
                 {reportQuery.isLoading ? (
-                  <tr>
-                    <td className="py-8 text-neutral-500" colSpan={columns.length}>
-                      <span className="inline-flex items-center gap-2">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Memuat data report...
-                      </span>
-                    </td>
-                  </tr>
+                  <TableSkeletonRows colSpan={columns.length} rows={6} />
+                ) : null}
+                {reportQuery.isError ? (
+                  <ErrorTableRow
+                    colSpan={columns.length}
+                    title="Report gagal dimuat"
+                    description="Preview report belum bisa ditampilkan. Cek filter, lalu coba muat ulang."
+                    onRetry={() => reportQuery.refetch()}
+                  />
+                ) : null}
+                {!reportQuery.isLoading && !reportQuery.isError
+                  ? previewRows.map((row, index) => (
+                      <tr key={index} className="border-b border-neutral-100">
+                        {columns.map((column) => (
+                          <td key={column.key} className="py-3 pr-4">
+                            {formatReportCell(row, column.key)}
+                          </td>
+                        ))}
+                      </tr>
+                    ))
+                  : null}
+                {!reportQuery.isLoading && !reportQuery.isError && !rows.length ? (
+                  <EmptyTableRow colSpan={columns.length}>
+                    Belum ada data untuk kombinasi filter ini.
+                  </EmptyTableRow>
                 ) : null}
               </tbody>
             </table>

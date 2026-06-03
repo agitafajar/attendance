@@ -18,6 +18,7 @@ import { type RoleName } from "@/lib/auth-storage";
 import { AdminShell } from "@/components/app/admin-shell";
 import { useAuthGuard } from "@/components/app/use-auth-guard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DashboardSkeleton, QueryErrorState } from "@/components/ui/table-state";
 
 type AdminDashboard = {
   totalEmployees: number;
@@ -100,24 +101,26 @@ export default function DashboardPage() {
       user={user}
     >
       {dashboardQuery.isError ? (
-        <Card className="border-amber-200 bg-amber-50 shadow-none">
-          <CardContent className="pt-6 text-sm font-medium text-amber-800">
-            Gagal memuat dashboard. Silakan login ulang atau hubungi admin.
-          </CardContent>
-        </Card>
+        <QueryErrorState
+          title="Dashboard gagal dimuat"
+          description="Ringkasan operasional belum bisa ditampilkan. Coba muat ulang atau login ulang jika sesi habis."
+          onRetry={() => dashboardQuery.refetch()}
+        />
       ) : null}
 
-      {role === "ADMIN" ? (
+      {dashboardQuery.isLoading ? <DashboardSkeleton /> : null}
+
+      {!dashboardQuery.isLoading && !dashboardQuery.isError && role === "ADMIN" ? (
         <AdminDashboardView dashboard={dashboardQuery.data as AdminDashboard | undefined} />
       ) : null}
 
-      {role === "SUPERVISOR" ? (
+      {!dashboardQuery.isLoading && !dashboardQuery.isError && role === "SUPERVISOR" ? (
         <SupervisorDashboardView
           dashboard={dashboardQuery.data as SupervisorDashboard | undefined}
         />
       ) : null}
 
-      {role === "EMPLOYEE" ? (
+      {!dashboardQuery.isLoading && !dashboardQuery.isError && role === "EMPLOYEE" ? (
         <EmployeeDashboardView
           dashboard={dashboardQuery.data as EmployeeDashboard | undefined}
         />

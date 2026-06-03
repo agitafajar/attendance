@@ -13,11 +13,11 @@ import { Label } from "@/components/ui/label";
 import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { EmptyTableRow, FormError, LoadingTableRow } from "@/components/ui/table-state";
+import { EmptyTableRow, ErrorTableRow, FormError, LoadingTableRow } from "@/components/ui/table-state";
 import { useToast } from "@/components/ui/toast";
 import { api } from "@/lib/api";
 
-const MASTER_DATA_ROLES = ["ADMIN", "SUPERVISOR"] as const;
+const MASTER_DATA_ROLES = ["ADMIN"] as const;
 
 type Client = {
   id: string;
@@ -313,13 +313,21 @@ export default function WorkLocationsPage() {
                     ) : null}
                   </tr>
                 ))}
-                {!locationsQuery.isLoading && !locationsQuery.data?.length ? (
+                {!locationsQuery.isLoading && !locationsQuery.isError && !locationsQuery.data?.length ? (
                   <EmptyTableRow colSpan={canManageMasterData ? 6 : 5}>
                     Belum ada lokasi kerja.
                   </EmptyTableRow>
                 ) : null}
                 {locationsQuery.isLoading ? (
                   <LoadingTableRow colSpan={canManageMasterData ? 6 : 5} />
+                ) : null}
+                {locationsQuery.isError ? (
+                  <ErrorTableRow
+                    colSpan={canManageMasterData ? 6 : 5}
+                    title="Lokasi kerja gagal dimuat"
+                    description="Data lokasi kerja belum bisa ditampilkan. Coba muat ulang beberapa saat lagi."
+                    onRetry={() => locationsQuery.refetch()}
+                  />
                 ) : null}
               </tbody>
             </table>

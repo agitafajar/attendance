@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { CalendarClock, Loader2, RotateCcw } from "lucide-react";
+import { CalendarClock, RotateCcw } from "lucide-react";
 import { AdminShell } from "@/components/app/admin-shell";
 import { useAuthGuard } from "@/components/app/use-auth-guard";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { SummaryChip } from "@/components/ui/summary-chip";
+import { EmptyTableRow, ErrorTableRow, TableSkeletonRows } from "@/components/ui/table-state";
 import { api } from "@/lib/api";
 
 type Attendance = {
@@ -188,50 +189,47 @@ export default function AttendancesPage() {
                 </tr>
               </thead>
               <tbody>
-                {rows.map((attendance) => (
-                  <tr key={attendance.id} className="border-b border-neutral-100">
-                    <td className="py-3 pr-4">{formatDate(attendance.attendanceDate)}</td>
-                    <td className="py-3 pr-4">
-                      <p className="font-medium">
-                        {attendance.employee.employeeNumber} -{" "}
-                        {attendance.employee.user.fullName}
-                      </p>
-                      <p className="mt-1 text-xs text-neutral-500">
-                        {attendance.employee.user.email}
-                      </p>
-                    </td>
-                    <td className="py-3 pr-4">
-                      <p>{attendance.assignment.client.name}</p>
-                      <p className="mt-1 text-xs text-neutral-500">
-                        {attendance.assignment.workLocation.name} /{" "}
-                        {attendance.assignment.shift.name}
-                      </p>
-                    </td>
-                    <td className="py-3 pr-4">{formatDateTime(attendance.checkInTime)}</td>
-                    <td className="py-3 pr-4">{formatDateTime(attendance.checkOutTime)}</td>
-                    <td className="py-3 pr-4">{attendance.lateMinutes ?? 0} menit</td>
-                    <td className="py-3 pr-4">{attendance.workMinutes ?? 0} menit</td>
-                    <td className="py-3 pr-4">
-                      <StatusBadge status={attendance.status} />
-                    </td>
-                  </tr>
-                ))}
-                {!attendancesQuery.isLoading && !attendancesQuery.data?.length ? (
-                  <tr>
-                    <td className="py-6 text-neutral-500" colSpan={8}>
-                      Belum ada data absensi untuk filter ini.
-                    </td>
-                  </tr>
+                {attendancesQuery.isLoading ? <TableSkeletonRows colSpan={8} /> : null}
+                {attendancesQuery.isError ? (
+                  <ErrorTableRow
+                    colSpan={8}
+                    title="Absensi gagal dimuat"
+                    description="Data absensi belum bisa ditampilkan. Coba muat ulang atau cek sesi login."
+                    onRetry={() => attendancesQuery.refetch()}
+                  />
                 ) : null}
-                {attendancesQuery.isLoading ? (
-                  <tr>
-                    <td className="py-8 text-neutral-500" colSpan={8}>
-                      <span className="inline-flex items-center gap-2">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Memuat data absensi...
-                      </span>
-                    </td>
-                  </tr>
+                {!attendancesQuery.isLoading && !attendancesQuery.isError
+                  ? rows.map((attendance) => (
+                      <tr key={attendance.id} className="border-b border-neutral-100">
+                        <td className="py-3 pr-4">{formatDate(attendance.attendanceDate)}</td>
+                        <td className="py-3 pr-4">
+                          <p className="font-medium">
+                            {attendance.employee.employeeNumber} -{" "}
+                            {attendance.employee.user.fullName}
+                          </p>
+                          <p className="mt-1 text-xs text-neutral-500">
+                            {attendance.employee.user.email}
+                          </p>
+                        </td>
+                        <td className="py-3 pr-4">
+                          <p>{attendance.assignment.client.name}</p>
+                          <p className="mt-1 text-xs text-neutral-500">
+                            {attendance.assignment.workLocation.name} /{" "}
+                            {attendance.assignment.shift.name}
+                          </p>
+                        </td>
+                        <td className="py-3 pr-4">{formatDateTime(attendance.checkInTime)}</td>
+                        <td className="py-3 pr-4">{formatDateTime(attendance.checkOutTime)}</td>
+                        <td className="py-3 pr-4">{attendance.lateMinutes ?? 0} menit</td>
+                        <td className="py-3 pr-4">{attendance.workMinutes ?? 0} menit</td>
+                        <td className="py-3 pr-4">
+                          <StatusBadge status={attendance.status} />
+                        </td>
+                      </tr>
+                    ))
+                  : null}
+                {!attendancesQuery.isLoading && !attendancesQuery.isError && !rows.length ? (
+                  <EmptyTableRow colSpan={8}>Belum ada data absensi untuk filter ini.</EmptyTableRow>
                 ) : null}
               </tbody>
             </table>

@@ -13,11 +13,11 @@ import { Label } from "@/components/ui/label";
 import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { EmptyTableRow, FormError, LoadingTableRow } from "@/components/ui/table-state";
+import { EmptyTableRow, ErrorTableRow, FormError, LoadingTableRow } from "@/components/ui/table-state";
 import { useToast } from "@/components/ui/toast";
 import { api } from "@/lib/api";
 
-const MASTER_DATA_ROLES = ["ADMIN", "SUPERVISOR"] as const;
+const MASTER_DATA_ROLES = ["ADMIN"] as const;
 
 type Supervisor = {
   id: string;
@@ -265,13 +265,21 @@ export default function SupervisorsPage() {
                     ) : null}
                   </tr>
                 ))}
-                {!supervisorsQuery.isLoading && !supervisorsQuery.data?.length ? (
+                {!supervisorsQuery.isLoading && !supervisorsQuery.isError && !supervisorsQuery.data?.length ? (
                   <EmptyTableRow colSpan={canManageMasterData ? 6 : 5}>
                     Belum ada supervisor.
                   </EmptyTableRow>
                 ) : null}
                 {supervisorsQuery.isLoading ? (
                   <LoadingTableRow colSpan={canManageMasterData ? 6 : 5} />
+                ) : null}
+                {supervisorsQuery.isError ? (
+                  <ErrorTableRow
+                    colSpan={canManageMasterData ? 6 : 5}
+                    title="Supervisor gagal dimuat"
+                    description="Data supervisor belum bisa ditampilkan. Coba muat ulang beberapa saat lagi."
+                    onRetry={() => supervisorsQuery.refetch()}
+                  />
                 ) : null}
               </tbody>
             </table>

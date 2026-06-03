@@ -12,11 +12,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
-import { EmptyTableRow, FormError, LoadingTableRow } from "@/components/ui/table-state";
+import { EmptyTableRow, ErrorTableRow, FormError, LoadingTableRow } from "@/components/ui/table-state";
 import { useToast } from "@/components/ui/toast";
 import { api } from "@/lib/api";
 
-const MASTER_DATA_ROLES = ["ADMIN", "SUPERVISOR"] as const;
+const MASTER_DATA_ROLES = ["ADMIN"] as const;
 
 type Supervisor = {
   id: string;
@@ -296,13 +296,21 @@ export default function EmployeesPage() {
                     ) : null}
                   </tr>
                 ))}
-                {!employeesQuery.isLoading && !employeesQuery.data?.length ? (
+                {!employeesQuery.isLoading && !employeesQuery.isError && !employeesQuery.data?.length ? (
                   <EmptyTableRow colSpan={canManageMasterData ? 7 : 6}>
                     Belum ada employee.
                   </EmptyTableRow>
                 ) : null}
                 {employeesQuery.isLoading ? (
                   <LoadingTableRow colSpan={canManageMasterData ? 7 : 6} />
+                ) : null}
+                {employeesQuery.isError ? (
+                  <ErrorTableRow
+                    colSpan={canManageMasterData ? 7 : 6}
+                    title="Employee gagal dimuat"
+                    description="Data employee belum bisa ditampilkan. Coba muat ulang beberapa saat lagi."
+                    onRetry={() => employeesQuery.refetch()}
+                  />
                 ) : null}
               </tbody>
             </table>

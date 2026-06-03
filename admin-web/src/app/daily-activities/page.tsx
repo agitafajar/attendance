@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Activity, Loader2, RotateCcw } from "lucide-react";
+import { Activity, RotateCcw } from "lucide-react";
 import { AdminShell } from "@/components/app/admin-shell";
 import { useAuthGuard } from "@/components/app/use-auth-guard";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { SummaryChip } from "@/components/ui/summary-chip";
+import { EmptyTableRow, ErrorTableRow, TableSkeletonRows } from "@/components/ui/table-state";
 import { api } from "@/lib/api";
 
 type DailyActivity = {
@@ -175,57 +176,54 @@ export default function DailyActivitiesPage() {
                 </tr>
               </thead>
               <tbody>
-                {rows.map((activity) => (
-                  <tr key={activity.id} className="border-b border-neutral-100">
-                    <td className="py-3 pr-4">{formatDate(activity.activityDate)}</td>
-                    <td className="py-3 pr-4">
-                      <p className="font-medium">
-                        {activity.employee.employeeNumber} -{" "}
-                        {activity.employee.user.fullName}
-                      </p>
-                      <p className="mt-1 text-xs text-neutral-500">
-                        {activity.employee.user.email}
-                      </p>
-                    </td>
-                    <td className="py-3 pr-4">
-                      <p className="font-medium">{activity.title}</p>
-                      <p className="mt-1 line-clamp-2 max-w-md text-xs text-neutral-500">
-                        {activity.description}
-                      </p>
-                      {activity.rejectionNote ? (
-                        <p className="mt-1 text-xs text-red-600">
-                          {activity.rejectionNote}
-                        </p>
-                      ) : null}
-                    </td>
-                    <td className="py-3 pr-4">
-                      {activity.latitude && activity.longitude
-                        ? `${activity.latitude}, ${activity.longitude}`
-                        : "-"}
-                    </td>
-                    <td className="py-3 pr-4">{activity.photos.length}</td>
-                    <td className="py-3 pr-4">{activity.approvedBy?.fullName || "-"}</td>
-                    <td className="py-3 pr-4">
-                      <StatusBadge status={activity.status} />
-                    </td>
-                  </tr>
-                ))}
-                {!activitiesQuery.isLoading && !activitiesQuery.data?.length ? (
-                  <tr>
-                    <td className="py-6 text-neutral-500" colSpan={7}>
-                      Belum ada aktivitas untuk filter ini.
-                    </td>
-                  </tr>
+                {activitiesQuery.isLoading ? <TableSkeletonRows colSpan={7} /> : null}
+                {activitiesQuery.isError ? (
+                  <ErrorTableRow
+                    colSpan={7}
+                    title="Aktivitas gagal dimuat"
+                    description="Data kegiatan harian belum bisa ditampilkan. Coba muat ulang atau cek sesi login."
+                    onRetry={() => activitiesQuery.refetch()}
+                  />
                 ) : null}
-                {activitiesQuery.isLoading ? (
-                  <tr>
-                    <td className="py-8 text-neutral-500" colSpan={7}>
-                      <span className="inline-flex items-center gap-2">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Memuat data aktivitas...
-                      </span>
-                    </td>
-                  </tr>
+                {!activitiesQuery.isLoading && !activitiesQuery.isError
+                  ? rows.map((activity) => (
+                      <tr key={activity.id} className="border-b border-neutral-100">
+                        <td className="py-3 pr-4">{formatDate(activity.activityDate)}</td>
+                        <td className="py-3 pr-4">
+                          <p className="font-medium">
+                            {activity.employee.employeeNumber} -{" "}
+                            {activity.employee.user.fullName}
+                          </p>
+                          <p className="mt-1 text-xs text-neutral-500">
+                            {activity.employee.user.email}
+                          </p>
+                        </td>
+                        <td className="py-3 pr-4">
+                          <p className="font-medium">{activity.title}</p>
+                          <p className="mt-1 line-clamp-2 max-w-md text-xs text-neutral-500">
+                            {activity.description}
+                          </p>
+                          {activity.rejectionNote ? (
+                            <p className="mt-1 text-xs text-red-600">
+                              {activity.rejectionNote}
+                            </p>
+                          ) : null}
+                        </td>
+                        <td className="py-3 pr-4">
+                          {activity.latitude && activity.longitude
+                            ? `${activity.latitude}, ${activity.longitude}`
+                            : "-"}
+                        </td>
+                        <td className="py-3 pr-4">{activity.photos.length}</td>
+                        <td className="py-3 pr-4">{activity.approvedBy?.fullName || "-"}</td>
+                        <td className="py-3 pr-4">
+                          <StatusBadge status={activity.status} />
+                        </td>
+                      </tr>
+                    ))
+                  : null}
+                {!activitiesQuery.isLoading && !activitiesQuery.isError && !rows.length ? (
+                  <EmptyTableRow colSpan={7}>Belum ada aktivitas untuk filter ini.</EmptyTableRow>
                 ) : null}
               </tbody>
             </table>
