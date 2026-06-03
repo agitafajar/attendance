@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, ClipboardCheck, Loader2, X } from "lucide-react";
@@ -8,6 +9,7 @@ import { useAuthGuard } from "@/components/app/use-auth-guard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { SummaryChip } from "@/components/ui/summary-chip";
 import { api } from "@/lib/api";
 
 const APPROVAL_ROLES = ["ADMIN", "SUPERVISOR"] as const;
@@ -312,7 +314,7 @@ function ApprovalSection<T>({
   isLoading: boolean;
   total: number;
   emptyText: string;
-  renderRow: (row: T) => React.ReactNode;
+  renderRow: (row: T) => ReactNode;
 }) {
   return (
     <Card>
@@ -321,13 +323,15 @@ function ApprovalSection<T>({
           <ClipboardCheck className="h-4 w-4" />
           {title}
         </CardTitle>
-        <span className="rounded-md border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">
-          {isLoading ? "Loading" : `${total} Pending`}
-        </span>
+        <SummaryChip
+          label={isLoading ? "Loading" : `${total} Pending`}
+          value="Queue"
+          tone="amber"
+        />
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[900px] border-collapse text-sm">
+          <table className="w-full min-w-[960px] border-collapse text-sm">
             <thead>
               <tr className="border-b border-neutral-200 text-left text-neutral-500">
                 {headers.map((header) => (
@@ -349,7 +353,10 @@ function ApprovalSection<T>({
               {isLoading ? (
                 <tr>
                   <td className="py-6 text-neutral-500" colSpan={headers.length}>
-                    Memuat data...
+                    <span className="inline-flex items-center gap-2">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Memuat data...
+                    </span>
                   </td>
                 </tr>
               ) : null}
@@ -394,8 +401,8 @@ function ActionButtons({
           Approve
         </Button>
         <Button
-          className="h-8 px-3 border-rose-200 text-rose-700 hover:bg-rose-50"
           variant="outline"
+          className="h-8 border-red-200 px-3 text-red-700 hover:border-red-300 hover:bg-red-50"
           onClick={onReject}
           disabled={disabled}
         >
@@ -404,9 +411,9 @@ function ActionButtons({
         </Button>
       </div>
       {isRejecting ? (
-        <div className="rounded-md border border-rose-200 bg-rose-50/70 p-2">
+        <div className="rounded-md border border-red-200 bg-red-50/70 p-2 shadow-sm shadow-red-950/5">
           <textarea
-            className="min-h-20 w-full resize-y rounded-md border border-rose-200 bg-white px-3 py-2 text-sm text-[#17211d] outline-none transition focus:border-rose-400 focus:ring-2 focus:ring-rose-100"
+            className="min-h-20 w-full resize-y rounded-md border border-red-200 bg-white px-3 py-2 text-sm font-medium text-[var(--foreground)] shadow-sm outline-none transition placeholder:font-normal placeholder:text-[var(--muted)] focus:border-red-400 focus:ring-2 focus:ring-red-100"
             value={rejectionNotes}
             onChange={(event) => onUpdateRejectNotes(event.target.value)}
             placeholder="Catatan penolakan"
@@ -422,7 +429,8 @@ function ActionButtons({
               Batal
             </Button>
             <Button
-              className="h-8 px-3 bg-rose-700 hover:bg-rose-800"
+              className="h-8 px-3"
+              variant="danger"
               onClick={onSubmitReject}
               disabled={disabled || !rejectionNotes.trim()}
             >

@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { SummaryChip } from "@/components/ui/summary-chip";
 import { api } from "@/lib/api";
 
 const REPORT_ROLES = ["ADMIN", "SUPERVISOR"] as const;
@@ -269,8 +270,8 @@ export default function ReportsPage() {
               Filter Report
             </CardTitle>
             <div className="flex flex-wrap gap-2">
-              <SummaryChip label={selectedReport.label} value="Selected" />
-              <SummaryChip label={`${activeFilterCount} active`} value="Filters" />
+              <SummaryChip label={selectedReport.label} value="Selected" tone="amber" />
+              <SummaryChip label={`${activeFilterCount} active`} value="Filters" tone="teal" />
               <SummaryChip
                 label={reportQuery.isLoading ? "Loading" : `${rows.length} rows`}
                 value="Preview"
@@ -414,9 +415,7 @@ export default function ReportsPage() {
       <Card className="mt-4">
         <CardHeader className="flex flex-row items-center justify-between space-y-0">
           <CardTitle>{selectedReport.label} Preview</CardTitle>
-          <span className="rounded-md border border-[#e2dccf] bg-[#fffaf0] px-2.5 py-1 text-xs font-semibold text-[#667063]">
-            {previewRows.length} / {rows.length} rows
-          </span>
+          <SummaryChip label={`${previewRows.length} / ${rows.length} rows`} value="Preview" />
         </CardHeader>
         <CardContent>
           {reportQuery.isError ? (
@@ -546,13 +545,4 @@ function formatReportCell(row: unknown, key: string) {
   }
 
   return formatValue(value);
-}
-
-function SummaryChip({ label, value }: { label: string; value: string }) {
-  return (
-    <span className="inline-flex items-center gap-2 rounded-md border border-[#e2dccf] bg-[#fffaf0] px-2.5 py-1 text-xs">
-      <span className="font-semibold text-[#17211d]">{label}</span>
-      <span className="text-[#667063]">{value}</span>
-    </span>
-  );
 }

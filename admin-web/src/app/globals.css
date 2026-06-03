@@ -1,36 +1,45 @@
 @import "tailwindcss";
 
 :root {
-  --brand-900: #2c5ead;
-  --brand-700: #1591dc;
-  --brand-500: #4bb8fa;
-  --brand-100: #c4e2f5;
-  --brand-yellow: #eaf6ff;
-  --brand-cream: #f4faff;
+  --brand-950: #0f172a;
+  --brand-900: #172033;
+  --brand-800: #1f2a44;
+  --brand-700: #0f766e;
+  --brand-600: #0d9488;
+  --brand-500: #14b8a6;
+  --brand-100: #ccfbf1;
+  --brand-yellow: #f6c85f;
+  --brand-cream: #f7f5ef;
 
-  --background: #f4faff;
-  --foreground: #10243a;
+  --background: #f5f7f6;
+  --foreground: #111827;
   --surface: #ffffff;
-  --surface-soft: #eef8ff;
-  --surface-muted: #eaf6ff;
-  --border: #d8eaf7;
-  --border-strong: #b8d8ed;
-  --muted: #60778a;
-  --muted-strong: #38566f;
+  --surface-soft: #eef3f1;
+  --surface-muted: #e5ebe8;
+  --border: #dce4e0;
+  --border-strong: #bccbc5;
+  --muted: #68756f;
+  --muted-strong: #47544e;
 
-  --primary: var(--brand-900);
-  --primary-hover: #234f94;
+  --primary: var(--brand-700);
+  --primary-hover: #115e59;
   --primary-foreground: #ffffff;
-  --accent: var(--brand-700);
+  --accent: var(--brand-600);
   --accent-soft: var(--brand-100);
   --warning: var(--brand-yellow);
-  --shadow-soft: 0 18px 50px rgba(44, 94, 173, 0.1);
+  --danger: #c2410c;
+  --danger-soft: #ffedd5;
+  --success: #047857;
+  --success-soft: #d1fae5;
+  --shadow-soft: 0 18px 48px rgba(17, 24, 39, 0.08);
+  --shadow-card: 0 1px 2px rgba(17, 24, 39, 0.06), 0 10px 30px rgba(17, 24, 39, 0.05);
+  --ring: 0 0 0 4px rgba(13, 148, 136, 0.12);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-inter);
   --font-mono: var(--font-geist-mono);
 }
 
@@ -54,9 +63,23 @@ select:disabled,
 
 body {
   margin: 0;
-  background: var(--background);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.68), rgba(245, 247, 246, 0) 260px),
+    var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+  font-size: 14px;
+  letter-spacing: 0;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: rgba(20, 184, 166, 0.22);
+}
+
+:focus-visible {
+  outline: 2px solid var(--brand-600);
+  outline-offset: 2px;
 }
 
 main table {
@@ -66,15 +89,21 @@ main table {
 main .overflow-x-auto {
   border: 1px solid var(--border);
   border-radius: 8px;
+  background: var(--surface);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
 }
 
 main thead tr {
   border-color: var(--border);
-  background: var(--surface-muted);
+  background: #f8faf9;
 }
 
 main th {
   color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   white-space: nowrap;
 }
 
@@ -85,11 +114,12 @@ main tbody tr {
 }
 
 main tbody tr:hover {
-  background: var(--surface-soft);
+  background: #f8fbfa;
 }
 
 main td {
   color: var(--foreground);
+  border-color: var(--border);
   vertical-align: top;
 }
 

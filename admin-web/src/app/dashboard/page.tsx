@@ -100,8 +100,8 @@ export default function DashboardPage() {
       user={user}
     >
       {dashboardQuery.isError ? (
-        <Card className="border-[var(--brand-500)]/30 bg-[var(--accent-soft)] shadow-none">
-          <CardContent className="pt-6 text-sm text-[var(--brand-900)]">
+        <Card className="border-amber-200 bg-amber-50 shadow-none">
+          <CardContent className="pt-6 text-sm font-medium text-amber-800">
             Gagal memuat dashboard. Silakan login ulang atau hubungi admin.
           </CardContent>
         </Card>
@@ -166,7 +166,7 @@ function AdminDashboardView({ dashboard }: { dashboard?: AdminDashboard }) {
               Status kegiatan harian yang tercatat hari ini.
             </p>
           </div>
-          <div className="hidden h-10 w-10 items-center justify-center rounded-md bg-[var(--brand-900)] text-[var(--brand-yellow)] sm:flex">
+          <div className="hidden h-10 w-10 items-center justify-center rounded-md bg-[var(--brand-950)] text-[var(--brand-500)] sm:flex">
             <Activity className="h-5 w-5" />
           </div>
         </CardHeader>
@@ -266,7 +266,7 @@ function EmployeeDashboardView({ dashboard }: { dashboard?: EmployeeDashboard })
               Identitas karyawan aktif untuk sesi ini.
             </p>
           </div>
-          <div className="hidden h-10 w-10 items-center justify-center rounded-md bg-[var(--brand-900)] text-[var(--brand-yellow)] sm:flex">
+          <div className="hidden h-10 w-10 items-center justify-center rounded-md bg-[var(--brand-950)] text-[var(--brand-500)] sm:flex">
             <ShieldCheck className="h-5 w-5" />
           </div>
         </CardHeader>
@@ -298,37 +298,39 @@ function MetricCard({
   const tones = {
     charcoal: {
       card: "border-[var(--border)] bg-[var(--surface)]",
-      icon: "bg-[var(--brand-900)] text-[var(--brand-yellow)]",
-      accent: "text-[var(--brand-900)]",
+      icon: "bg-[var(--brand-950)] text-white",
+      accent: "text-[var(--foreground)]",
     },
     green: {
-      card: "border-[var(--brand-900)]/15 bg-[var(--brand-900)]/5",
-      icon: "bg-[var(--brand-900)] text-white",
-      accent: "text-[var(--brand-900)]",
+      card: "border-emerald-200 bg-emerald-50/60",
+      icon: "bg-emerald-600 text-white",
+      accent: "text-emerald-800",
     },
     amber: {
-      card: "border-[var(--brand-yellow)] bg-[var(--brand-yellow)]/18",
-      icon: "bg-[var(--brand-yellow)] text-[var(--brand-900)]",
-      accent: "text-[var(--brand-900)]",
+      card: "border-amber-200 bg-amber-50/70",
+      icon: "bg-amber-500 text-white",
+      accent: "text-amber-800",
     },
     rose: {
-      card: "border-[var(--brand-500)]/35 bg-[var(--brand-500)]/10",
-      icon: "bg-[var(--brand-700)] text-white",
-      accent: "text-[var(--brand-700)]",
+      card: "border-red-200 bg-red-50/70",
+      icon: "bg-red-600 text-white",
+      accent: "text-red-800",
     },
     teal: {
-      card: "border-[var(--brand-700)]/20 bg-[var(--brand-700)]/7",
-      icon: "bg-[var(--brand-500)] text-white",
+      card: "border-teal-200 bg-teal-50/70",
+      icon: "bg-[var(--brand-700)] text-white",
       accent: "text-[var(--brand-700)]",
     },
   }[tone];
 
   return (
     <Card
-      className={`overflow-hidden shadow-[var(--shadow-soft)] ${tones.card}`}
+      className={`overflow-hidden ${tones.card}`}
     >
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-        <CardTitle className="text-sm font-medium text-[var(--muted)]">{title}</CardTitle>
+        <CardTitle className="text-sm font-semibold text-[var(--muted-strong)]">
+          {title}
+        </CardTitle>
         <div className={`flex h-10 w-10 items-center justify-center rounded-md ${tones.icon}`}>
           {icon}
         </div>
@@ -337,7 +339,7 @@ function MetricCard({
         <div className={`text-3xl font-semibold tracking-normal ${tones.accent}`}>
           {valueText ?? value ?? "-"}
         </div>
-        <div className="mt-4 flex items-center gap-1 text-xs font-medium text-[var(--muted)]">
+        <div className="mt-4 flex items-center gap-1 text-xs font-semibold text-[var(--muted)]">
           <ArrowUpRight className="h-3.5 w-3.5" />
           Real-time summary
         </div>
@@ -356,8 +358,8 @@ function SmallStat({
   valueText?: string;
 }) {
   return (
-    <div className="rounded-md border border-[var(--border)] bg-white p-3">
-      <p className="text-sm text-[var(--muted)]">{label}</p>
+    <div className="rounded-md border border-[var(--border)] bg-[#fbfcfb] p-3">
+      <p className="text-sm font-medium text-[var(--muted)]">{label}</p>
       <p className="mt-1 text-xl font-semibold text-[var(--foreground)]">
         {valueText ?? value ?? "-"}
       </p>

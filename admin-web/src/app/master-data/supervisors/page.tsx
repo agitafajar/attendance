@@ -2,15 +2,19 @@
 
 import { FormEvent, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, Pencil, Plus, Trash2, Users, X } from "lucide-react";
+import { Loader2, Pencil, Plus, Trash2, Users } from "lucide-react";
 import { AdminShell } from "@/components/app/admin-shell";
 import { useAuthGuard } from "@/components/app/use-auth-guard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { EmptyTableRow, FormError, LoadingTableRow } from "@/components/ui/table-state";
+import { useToast } from "@/components/ui/toast";
 import { api } from "@/lib/api";
 
 const MASTER_DATA_ROLES = ["ADMIN", "SUPERVISOR"] as const;
@@ -26,25 +30,37 @@ type Supervisor = {
   };
 };
 
+type SupervisorForm = {
+  supervisorNumber: string;
+  fullName: string;
+  email: string;
+  phone: string;
+  password: string;
+  isActive: string;
+};
+
+type ConfirmState =
+  | { action: "delete"; supervisor: Supervisor }
+  | null;
+
+const emptyForm: SupervisorForm = {
+  supervisorNumber: "",
+  fullName: "",
+  email: "",
+  phone: "",
+  password: "",
+  isActive: "true",
+};
+
 export default function SupervisorsPage() {
   const queryClient = useQueryClient();
+  const { showToast } = useToast();
   const { user, isReady } = useAuthGuard({ allowedRoles: MASTER_DATA_ROLES });
   const canManageMasterData = user?.role?.name === "ADMIN";
-  const [editingSupervisorId, setEditingSupervisorId] = useState<string | null>(null);
-  const [form, setForm] = useState({
-    supervisorNumber: "",
-    fullName: "",
-    email: "",
-    phone: "",
-    password: "",
-  });
-  const [editForm, setEditForm] = useState({
-    supervisorNumber: "",
-    fullName: "",
-    email: "",
-    phone: "",
-    isActive: "true",
-  });
+  const [modalMode, setModalMode] = useState<"create" | "edit" | null>(null);
+  const [selectedSupervisorId, setSelectedSupervisorId] = useState<string | null>(null);
+  const [form, setForm] = useState<SupervisorForm>(emptyForm);
+  const [confirmState, setConfirmState] = useState<ConfirmState>(null);
 
   const supervisorsQuery = useQuery({
     queryKey: ["master-data", "supervisors"],
@@ -57,52 +73,45 @@ export default function SupervisorsPage() {
 
   const createSupervisorMutation = useMutation({
     mutationFn: async () => {
-      const payload = {
-        supervisorNumber: form.supervisorNumber,
-        fullName: form.fullName,
-        email: form.email,
-        phone: form.phone || undefined,
-        password: form.password,
-      };
-
-      const { data } = await api.post<Supervisor>("/master-data/supervisors", payload);
+      const { data } = await api.post<Supervisor>(
+        "/master-data/supervisors",
+        buildPayload(form, "create"),
+      );
       return data;
     },
     onSuccess: () => {
-      setForm({
-        supervisorNumber: "",
-        fullName: "",
-        email: "",
-        phone: "",
-        password: "",
-      });
+      closeModal();
+      setConfirmState(null);
       queryClient.invalidateQueries({ queryKey: ["master-data", "supervisors"] });
+      showToast({ title: "Supervisor berhasil ditambahkan", tone: "success" });
+    },
+    onError: () => {
+      setConfirmState(null);
+      showToast({ title: "Gagal menambah supervisor", tone: "error" });
     },
   });
 
   const updateSupervisorMutation = useMutation({
     mutationFn: async () => {
-      if (!editingSupervisorId) {
+      if (!selectedSupervisorId) {
         throw new Error("No supervisor selected");
       }
 
-      const payload = {
-        supervisorNumber: editForm.supervisorNumber,
-        fullName: editForm.fullName,
-        email: editForm.email,
-        phone: editForm.phone || undefined,
-        isActive: editForm.isActive === "true",
-      };
-
       const { data } = await api.patch<Supervisor>(
-        `/master-data/supervisors/${editingSupervisorId}`,
-        payload,
+        `/master-data/supervisors/${selectedSupervisorId}`,
+        buildPayload(form, "edit"),
       );
       return data;
     },
     onSuccess: () => {
-      setEditingSupervisorId(null);
+      closeModal();
+      setConfirmState(null);
       queryClient.invalidateQueries({ queryKey: ["master-data", "supervisors"] });
+      showToast({ title: "Supervisor berhasil diperbarui", tone: "success" });
+    },
+    onError: () => {
+      setConfirmState(null);
+      showToast({ title: "Gagal memperbarui supervisor", tone: "error" });
     },
   });
 
@@ -112,46 +121,65 @@ export default function SupervisorsPage() {
       return data;
     },
     onSuccess: () => {
+      setConfirmState(null);
       queryClient.invalidateQueries({ queryKey: ["master-data", "supervisors"] });
+      showToast({ title: "Supervisor berhasil dihapus", tone: "success" });
+    },
+    onError: () => {
+      setConfirmState(null);
+      showToast({ title: "Gagal menghapus supervisor", tone: "error" });
     },
   });
 
-  function updateField(field: keyof typeof form, value: string) {
+  const isMutating =
+    createSupervisorMutation.isPending ||
+    updateSupervisorMutation.isPending ||
+    deleteSupervisorMutation.isPending;
+
+  function updateField(field: keyof SupervisorForm, value: string) {
     setForm((current) => ({ ...current, [field]: value }));
   }
 
-  function updateEditField(field: keyof typeof editForm, value: string) {
-    setEditForm((current) => ({ ...current, [field]: value }));
+  function openCreateModal() {
+    setSelectedSupervisorId(null);
+    setForm(emptyForm);
+    setModalMode("create");
   }
 
-  function startEdit(supervisor: Supervisor) {
-    setEditingSupervisorId(supervisor.id);
-    setEditForm({
+  function openEditModal(supervisor: Supervisor) {
+    setSelectedSupervisorId(supervisor.id);
+    setForm({
       supervisorNumber: supervisor.supervisorNumber,
       fullName: supervisor.user.fullName,
       email: supervisor.user.email,
       phone: supervisor.user.phone || "",
+      password: "",
       isActive: String(supervisor.user.isActive),
     });
+    setModalMode("edit");
   }
 
-  function cancelEdit() {
-    setEditingSupervisorId(null);
+  function closeModal() {
+    if (isMutating) return;
+    setModalMode(null);
+    setSelectedSupervisorId(null);
+    setForm(emptyForm);
   }
 
-  function deleteSupervisor(supervisor: Supervisor) {
-    const confirmed = window.confirm(`Hapus supervisor ${supervisor.user.fullName}?`);
-
-    if (!confirmed) {
+  function submitForm(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (modalMode === "edit") {
+      updateSupervisorMutation.mutate();
       return;
     }
 
-    deleteSupervisorMutation.mutate(supervisor.id);
+    createSupervisorMutation.mutate();
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    createSupervisorMutation.mutate();
+  function confirmAction() {
+    if (confirmState?.action === "delete") {
+      deleteSupervisorMutation.mutate(confirmState.supervisor.id);
+    }
   }
 
   return (
@@ -160,252 +188,243 @@ export default function SupervisorsPage() {
       description="Kelola akun supervisor lapangan."
       user={user}
     >
-      <div
-        className={
-          canManageMasterData ? "grid gap-4 xl:grid-cols-[380px_1fr]" : "grid gap-4"
-        }
-      >
-        {canManageMasterData ? (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Plus className="h-4 w-4" />
-              Tambah Supervisor
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form className="space-y-4" onSubmit={handleSubmit}>
-              <div className="space-y-2">
-                <Label htmlFor="supervisorNumber">Nomor Supervisor</Label>
-                <Input
-                  id="supervisorNumber"
-                  value={form.supervisorNumber}
-                  onChange={(event) =>
-                    updateField("supervisorNumber", event.target.value)
-                  }
-                  placeholder="SPV-002"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="fullName">Nama Lengkap</Label>
-                <Input
-                  id="fullName"
-                  value={form.fullName}
-                  onChange={(event) => updateField("fullName", event.target.value)}
-                  placeholder="Nama Supervisor"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={form.email}
-                  onChange={(event) => updateField("email", event.target.value)}
-                  placeholder="supervisor@company.test"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="phone">Telepon</Label>
-                <Input
-                  id="phone"
-                  value={form.phone}
-                  onChange={(event) => updateField("phone", event.target.value)}
-                  placeholder="081..."
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="password">Password Awal</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={form.password}
-                  onChange={(event) => updateField("password", event.target.value)}
-                  required
-                />
-              </div>
-              {createSupervisorMutation.isError ? (
-                <p className="text-sm text-red-600">Gagal menambah supervisor.</p>
+      <Card>
+        <CardHeader>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                Daftar Supervisor
+              </CardTitle>
+              <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+                Akun supervisor yang dapat memantau tim lapangan.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-sm font-medium text-[var(--muted)]">
+                {supervisorsQuery.data?.length ?? 0} supervisor
+              </span>
+              {canManageMasterData ? (
+                <Button onClick={openCreateModal}>
+                  <Plus className="h-4 w-4" />
+                  Supervisor
+                </Button>
               ) : null}
-              <Button
-                className="w-full"
-                type="submit"
-                disabled={createSupervisorMutation.isPending}
-              >
-                {createSupervisorMutation.isPending
-                  ? "Menyimpan..."
-                  : "Simpan Supervisor"}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-        ) : null}
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              Daftar Supervisor
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[980px] border-collapse text-sm">
-                <thead>
-                  <tr className="border-b border-neutral-200 text-left text-neutral-500">
-                    <th className="py-3 pr-4 font-medium">Nomor</th>
-                    <th className="py-3 pr-4 font-medium">Nama</th>
-                    <th className="py-3 pr-4 font-medium">Email</th>
-                    <th className="py-3 pr-4 font-medium">Telepon</th>
-                    <th className="py-3 pr-4 font-medium">Status</th>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[880px] border-collapse text-sm">
+              <thead>
+                <tr className="border-b border-neutral-200 text-left text-neutral-500">
+                  <th className="py-3 pr-4 font-medium">Nomor</th>
+                  <th className="py-3 pr-4 font-medium">Nama</th>
+                  <th className="py-3 pr-4 font-medium">Email</th>
+                  <th className="py-3 pr-4 font-medium">Telepon</th>
+                  <th className="py-3 pr-4 font-medium">Status</th>
+                  {canManageMasterData ? (
+                    <th className="py-3 pr-4 font-medium">Aksi</th>
+                  ) : null}
+                </tr>
+              </thead>
+              <tbody>
+                {supervisorsQuery.data?.map((supervisor) => (
+                  <tr key={supervisor.id} className="border-b border-neutral-100">
+                    <td className="py-3 pr-4 font-medium">
+                      {supervisor.supervisorNumber}
+                    </td>
+                    <td className="py-3 pr-4">{supervisor.user.fullName}</td>
+                    <td className="py-3 pr-4">{supervisor.user.email}</td>
+                    <td className="py-3 pr-4">{supervisor.user.phone || "-"}</td>
+                    <td className="py-3 pr-4">
+                      <StatusBadge status={supervisor.user.isActive} />
+                    </td>
                     {canManageMasterData ? (
-                      <th className="py-3 pr-4 font-medium">Aksi</th>
+                      <td className="py-3 pr-4">
+                        <div className="flex gap-2">
+                          <Button
+                            className="h-9 w-9 px-0"
+                            variant="outline"
+                            onClick={() => openEditModal(supervisor)}
+                            aria-label="Edit supervisor"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            className="h-9 w-9 border-red-200 px-0 text-red-700 hover:border-red-300 hover:bg-red-50"
+                            variant="outline"
+                            onClick={() => setConfirmState({ action: "delete", supervisor })}
+                            disabled={deleteSupervisorMutation.isPending}
+                            aria-label="Hapus supervisor"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </td>
                     ) : null}
                   </tr>
-                </thead>
-                <tbody>
-                  {supervisorsQuery.data?.map((supervisor) => {
-                    const isEditing =
-                      canManageMasterData && editingSupervisorId === supervisor.id;
+                ))}
+                {!supervisorsQuery.isLoading && !supervisorsQuery.data?.length ? (
+                  <EmptyTableRow colSpan={canManageMasterData ? 6 : 5}>
+                    Belum ada supervisor.
+                  </EmptyTableRow>
+                ) : null}
+                {supervisorsQuery.isLoading ? (
+                  <LoadingTableRow colSpan={canManageMasterData ? 6 : 5} />
+                ) : null}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
 
-                    return (
-                      <tr key={supervisor.id} className="border-b border-neutral-100">
-                        <td className="py-3 pr-4 font-medium">
-                          {isEditing ? (
-                            <Input
-                              value={editForm.supervisorNumber}
-                              onChange={(event) =>
-                                updateEditField("supervisorNumber", event.target.value)
-                              }
-                              className="w-36"
-                            />
-                          ) : (
-                            supervisor.supervisorNumber
-                          )}
-                        </td>
-                        <td className="py-3 pr-4">
-                          {isEditing ? (
-                            <Input
-                              value={editForm.fullName}
-                              onChange={(event) =>
-                                updateEditField("fullName", event.target.value)
-                              }
-                              className="min-w-48"
-                            />
-                          ) : (
-                            supervisor.user.fullName
-                          )}
-                        </td>
-                        <td className="py-3 pr-4">
-                          {isEditing ? (
-                            <Input
-                              type="email"
-                              value={editForm.email}
-                              onChange={(event) => updateEditField("email", event.target.value)}
-                              className="min-w-56"
-                            />
-                          ) : (
-                            supervisor.user.email
-                          )}
-                        </td>
-                        <td className="py-3 pr-4">
-                          {isEditing ? (
-                            <Input
-                              value={editForm.phone}
-                              onChange={(event) => updateEditField("phone", event.target.value)}
-                              className="w-40"
-                            />
-                          ) : (
-                            supervisor.user.phone || "-"
-                          )}
-                        </td>
-                        <td className="py-3 pr-4">
-                          {isEditing ? (
-                            <Select
-                              value={editForm.isActive}
-                              onChange={(event) =>
-                                updateEditField("isActive", event.target.value)
-                              }
-                              className="w-32"
-                            >
-                              <option value="true">Active</option>
-                              <option value="false">Inactive</option>
-                            </Select>
-                          ) : (
-                            <StatusBadge status={supervisor.user.isActive} />
-                          )}
-                        </td>
-                        {canManageMasterData ? (
-                          <td className="py-3 pr-4">
-                            {isEditing ? (
-                              <div className="flex gap-2">
-                                <Button
-                                  className="h-9 w-9 px-0"
-                                  onClick={() => updateSupervisorMutation.mutate()}
-                                  disabled={updateSupervisorMutation.isPending}
-                                  aria-label="Simpan perubahan"
-                                >
-                                  <Check className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  className="h-9 w-9 px-0"
-                                  variant="outline"
-                                  onClick={cancelEdit}
-                                  disabled={updateSupervisorMutation.isPending}
-                                  aria-label="Batal edit"
-                                >
-                                  <X className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            ) : (
-                              <div className="flex gap-2">
-                                <Button
-                                  className="h-9 w-9 px-0"
-                                  variant="outline"
-                                  onClick={() => startEdit(supervisor)}
-                                  aria-label="Edit supervisor"
-                                >
-                                  <Pencil className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  className="h-9 w-9 px-0 text-red-600 hover:bg-red-50"
-                                  variant="outline"
-                                  onClick={() => deleteSupervisor(supervisor)}
-                                  disabled={deleteSupervisorMutation.isPending}
-                                  aria-label="Hapus supervisor"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            )}
-                          </td>
-                        ) : null}
-                      </tr>
-                    );
-                  })}
-                  {!supervisorsQuery.isLoading && !supervisorsQuery.data?.length ? (
-                    <tr>
-                      <td className="py-6 text-neutral-500" colSpan={canManageMasterData ? 6 : 5}>
-                        Belum ada supervisor.
-                      </td>
-                    </tr>
-                  ) : null}
-                  {supervisorsQuery.isLoading ? (
-                    <tr>
-                      <td className="py-6 text-neutral-500" colSpan={canManageMasterData ? 6 : 5}>
-                        Memuat data...
-                      </td>
-                    </tr>
-                  ) : null}
-                </tbody>
-              </table>
+      <Modal
+        open={Boolean(modalMode)}
+        title={modalMode === "edit" ? "Edit Supervisor" : "Tambah Supervisor"}
+        description="Kelola identitas supervisor dan akses akun. Modal dapat discroll jika konten panjang."
+        size="lg"
+        onClose={closeModal}
+        footer={
+          <>
+            <Button variant="outline" onClick={closeModal} disabled={isMutating}>
+              Batal
+            </Button>
+            <Button type="submit" form="supervisor-form" disabled={isMutating}>
+              {isMutating ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              {modalMode === "edit" ? "Simpan Perubahan" : "Simpan Supervisor"}
+            </Button>
+          </>
+        }
+      >
+        <form id="supervisor-form" className="space-y-4" onSubmit={submitForm}>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="supervisorNumber">Nomor Supervisor</Label>
+              <Input
+                id="supervisorNumber"
+                value={form.supervisorNumber}
+                onChange={(event) => updateField("supervisorNumber", event.target.value)}
+                placeholder="SPV-002"
+                required
+              />
             </div>
-          </CardContent>
-        </Card>
-      </div>
+            <div className="space-y-2">
+              <Label htmlFor="fullName">Nama Lengkap</Label>
+              <Input
+                id="fullName"
+                value={form.fullName}
+                onChange={(event) => updateField("fullName", event.target.value)}
+                placeholder="Nama Supervisor"
+                required
+              />
+            </div>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                value={form.email}
+                onChange={(event) => updateField("email", event.target.value)}
+                placeholder="supervisor@company.test"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="phone">Telepon</Label>
+              <Input
+                id="phone"
+                value={form.phone}
+                onChange={(event) => updateField("phone", event.target.value)}
+                placeholder="081..."
+              />
+            </div>
+          </div>
+          {modalMode === "create" ? (
+            <div className="space-y-2">
+              <Label htmlFor="password">Password Awal</Label>
+              <Input
+                id="password"
+                type="password"
+                value={form.password}
+                onChange={(event) => updateField("password", event.target.value)}
+                required
+              />
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <Label htmlFor="isActive">Status</Label>
+              <Select
+                id="isActive"
+                value={form.isActive}
+                onChange={(event) => updateField("isActive", event.target.value)}
+              >
+                <option value="true">Active</option>
+                <option value="false">Inactive</option>
+              </Select>
+            </div>
+          )}
+          {createSupervisorMutation.isError && modalMode === "create" ? (
+            <FormError>Gagal menambah supervisor.</FormError>
+          ) : null}
+          {updateSupervisorMutation.isError && modalMode === "edit" ? (
+            <FormError>Gagal memperbarui supervisor.</FormError>
+          ) : null}
+        </form>
+      </Modal>
+
+      <ConfirmDialog
+        open={Boolean(confirmState)}
+        title={getConfirmTitle(confirmState)}
+        description={getConfirmDescription(confirmState)}
+        confirmText={getConfirmText(confirmState)}
+        tone={confirmState?.action === "delete" ? "danger" : "default"}
+        isLoading={isMutating}
+        onCancel={() => setConfirmState(null)}
+        onConfirm={confirmAction}
+      />
     </AdminShell>
   );
+}
+
+function buildPayload(form: SupervisorForm, mode: "create" | "edit") {
+  const payload: {
+    supervisorNumber: string;
+    fullName: string;
+    email: string;
+    phone?: string;
+    password?: string;
+    isActive?: boolean;
+  } = {
+    supervisorNumber: form.supervisorNumber,
+    fullName: form.fullName,
+    email: form.email,
+    phone: form.phone || undefined,
+  };
+
+  if (mode === "create") {
+    payload.password = form.password;
+  } else {
+    payload.isActive = form.isActive === "true";
+  }
+
+  return payload;
+}
+
+function getConfirmTitle(confirmState: ConfirmState) {
+  return confirmState?.action === "delete" ? "Hapus supervisor?" : "";
+}
+
+function getConfirmDescription(confirmState: ConfirmState) {
+  if (confirmState?.action === "delete") {
+    return `Supervisor ${confirmState.supervisor.user.fullName} akan dihapus dari master data.`;
+  }
+
+  return "";
+}
+
+function getConfirmText(confirmState: ConfirmState) {
+  return confirmState?.action === "delete" ? "Hapus Supervisor" : "Konfirmasi";
 }

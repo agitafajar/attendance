@@ -2,15 +2,19 @@
 
 import { FormEvent, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, MapPin, Pencil, Plus, Trash2, X } from "lucide-react";
+import { Loader2, MapPin, Pencil, Plus, Trash2 } from "lucide-react";
 import { AdminShell } from "@/components/app/admin-shell";
 import { useAuthGuard } from "@/components/app/use-auth-guard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { EmptyTableRow, FormError, LoadingTableRow } from "@/components/ui/table-state";
+import { useToast } from "@/components/ui/toast";
 import { api } from "@/lib/api";
 
 const MASTER_DATA_ROLES = ["ADMIN", "SUPERVISOR"] as const;
@@ -33,28 +37,39 @@ type WorkLocation = {
   client: Client;
 };
 
+type LocationForm = {
+  clientId: string;
+  name: string;
+  address: string;
+  latitude: string;
+  longitude: string;
+  geofenceRadiusMeter: string;
+  isActive: string;
+};
+
+type ConfirmState =
+  | { action: "delete"; location: WorkLocation }
+  | null;
+
+const emptyForm: LocationForm = {
+  clientId: "",
+  name: "",
+  address: "",
+  latitude: "",
+  longitude: "",
+  geofenceRadiusMeter: "150",
+  isActive: "true",
+};
+
 export default function WorkLocationsPage() {
   const queryClient = useQueryClient();
+  const { showToast } = useToast();
   const { user, isReady } = useAuthGuard({ allowedRoles: MASTER_DATA_ROLES });
   const canManageMasterData = user?.role?.name === "ADMIN";
-  const [editingLocationId, setEditingLocationId] = useState<string | null>(null);
-  const [form, setForm] = useState({
-    clientId: "",
-    name: "",
-    address: "",
-    latitude: "",
-    longitude: "",
-    geofenceRadiusMeter: "150",
-  });
-  const [editForm, setEditForm] = useState({
-    clientId: "",
-    name: "",
-    address: "",
-    latitude: "",
-    longitude: "",
-    geofenceRadiusMeter: "150",
-    isActive: "true",
-  });
+  const [modalMode, setModalMode] = useState<"create" | "edit" | null>(null);
+  const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null);
+  const [form, setForm] = useState<LocationForm>(emptyForm);
+  const [confirmState, setConfirmState] = useState<ConfirmState>(null);
 
   const clientsQuery = useQuery({
     queryKey: ["master-data", "clients"],
@@ -79,56 +94,45 @@ export default function WorkLocationsPage() {
 
   const createLocationMutation = useMutation({
     mutationFn: async () => {
-      const payload = {
-        clientId: selectedClientId,
-        name: form.name,
-        address: form.address || undefined,
-        latitude: Number(form.latitude),
-        longitude: Number(form.longitude),
-        geofenceRadiusMeter: Number(form.geofenceRadiusMeter),
-      };
-
-      const { data } = await api.post<WorkLocation>("/master-data/work-locations", payload);
+      const { data } = await api.post<WorkLocation>(
+        "/master-data/work-locations",
+        buildPayload(form, selectedClientId, false),
+      );
       return data;
     },
     onSuccess: () => {
-      setForm({
-        clientId: "",
-        name: "",
-        address: "",
-        latitude: "",
-        longitude: "",
-        geofenceRadiusMeter: "150",
-      });
+      closeModal();
+      setConfirmState(null);
       queryClient.invalidateQueries({ queryKey: ["master-data", "work-locations"] });
+      showToast({ title: "Lokasi berhasil ditambahkan", tone: "success" });
+    },
+    onError: () => {
+      setConfirmState(null);
+      showToast({ title: "Gagal menambah lokasi", tone: "error" });
     },
   });
 
   const updateLocationMutation = useMutation({
     mutationFn: async () => {
-      if (!editingLocationId) {
+      if (!selectedLocationId) {
         throw new Error("No work location selected");
       }
 
-      const payload = {
-        clientId: editForm.clientId,
-        name: editForm.name,
-        address: editForm.address || undefined,
-        latitude: Number(editForm.latitude),
-        longitude: Number(editForm.longitude),
-        geofenceRadiusMeter: Number(editForm.geofenceRadiusMeter),
-        isActive: editForm.isActive === "true",
-      };
-
       const { data } = await api.patch<WorkLocation>(
-        `/master-data/work-locations/${editingLocationId}`,
-        payload,
+        `/master-data/work-locations/${selectedLocationId}`,
+        buildPayload(form, selectedClientId, true),
       );
       return data;
     },
     onSuccess: () => {
-      setEditingLocationId(null);
+      closeModal();
+      setConfirmState(null);
       queryClient.invalidateQueries({ queryKey: ["master-data", "work-locations"] });
+      showToast({ title: "Lokasi berhasil diperbarui", tone: "success" });
+    },
+    onError: () => {
+      setConfirmState(null);
+      showToast({ title: "Gagal memperbarui lokasi", tone: "error" });
     },
   });
 
@@ -140,31 +144,51 @@ export default function WorkLocationsPage() {
       return data;
     },
     onSuccess: () => {
+      setConfirmState(null);
       queryClient.invalidateQueries({ queryKey: ["master-data", "work-locations"] });
+      showToast({ title: "Lokasi berhasil dihapus", tone: "success" });
+    },
+    onError: () => {
+      setConfirmState(null);
+      showToast({ title: "Gagal menghapus lokasi", tone: "error" });
     },
   });
 
   const canSubmit = useMemo(() => {
+    const latitude = Number(form.latitude);
+    const longitude = Number(form.longitude);
+
     return (
       Boolean(selectedClientId) &&
       Boolean(form.name) &&
-      Number.isFinite(Number(form.latitude)) &&
-      Number.isFinite(Number(form.longitude)) &&
+      Number.isFinite(latitude) &&
+      latitude >= -90 &&
+      latitude <= 90 &&
+      Number.isFinite(longitude) &&
+      longitude >= -180 &&
+      longitude <= 180 &&
       Number(form.geofenceRadiusMeter) > 0
     );
   }, [form.geofenceRadiusMeter, form.latitude, form.longitude, form.name, selectedClientId]);
 
-  function updateField(field: keyof typeof form, value: string) {
+  const isMutating =
+    createLocationMutation.isPending ||
+    updateLocationMutation.isPending ||
+    deleteLocationMutation.isPending;
+
+  function updateField(field: keyof LocationForm, value: string) {
     setForm((current) => ({ ...current, [field]: value }));
   }
 
-  function updateEditField(field: keyof typeof editForm, value: string) {
-    setEditForm((current) => ({ ...current, [field]: value }));
+  function openCreateModal() {
+    setSelectedLocationId(null);
+    setForm({ ...emptyForm, clientId: defaultClientId });
+    setModalMode("create");
   }
 
-  function startEdit(location: WorkLocation) {
-    setEditingLocationId(location.id);
-    setEditForm({
+  function openEditModal(location: WorkLocation) {
+    setSelectedLocationId(location.id);
+    setForm({
       clientId: location.clientId,
       name: location.name,
       address: location.address || "",
@@ -173,25 +197,30 @@ export default function WorkLocationsPage() {
       geofenceRadiusMeter: String(location.geofenceRadiusMeter),
       isActive: String(location.isActive),
     });
+    setModalMode("edit");
   }
 
-  function cancelEdit() {
-    setEditingLocationId(null);
+  function closeModal() {
+    if (isMutating) return;
+    setModalMode(null);
+    setSelectedLocationId(null);
+    setForm(emptyForm);
   }
 
-  function deleteLocation(location: WorkLocation) {
-    const confirmed = window.confirm(`Hapus lokasi ${location.name}?`);
-
-    if (!confirmed) {
+  function submitForm(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (modalMode === "edit") {
+      updateLocationMutation.mutate();
       return;
     }
 
-    deleteLocationMutation.mutate(location.id);
+    createLocationMutation.mutate();
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    createLocationMutation.mutate();
+  function confirmAction() {
+    if (confirmState?.action === "delete") {
+      deleteLocationMutation.mutate(confirmState.location.id);
+    }
   }
 
   return (
@@ -200,303 +229,294 @@ export default function WorkLocationsPage() {
       description="Kelola titik lokasi kerja dan radius geofence."
       user={user}
     >
-      <div
-        className={
-          canManageMasterData ? "grid gap-4 xl:grid-cols-[380px_1fr]" : "grid gap-4"
-        }
-      >
-        {canManageMasterData ? (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Plus className="h-4 w-4" />
-              Tambah Lokasi
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form className="space-y-4" onSubmit={handleSubmit}>
-              <div className="space-y-2">
-                <Label htmlFor="clientId">Client</Label>
-                <Select
-                  id="clientId"
-                  value={selectedClientId}
-                  onChange={(event) => updateField("clientId", event.target.value)}
-                  disabled={!clientsQuery.data?.length}
-                  required
-                >
-                  {!clientsQuery.data?.length ? (
-                    <option value="">Belum ada client</option>
-                  ) : null}
-                  {clientsQuery.data?.map((client) => (
-                    <option key={client.id} value={client.id}>
-                      {client.code} - {client.name}
-                    </option>
-                  ))}
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="name">Nama Lokasi</Label>
-                <Input
-                  id="name"
-                  value={form.name}
-                  onChange={(event) => updateField("name", event.target.value)}
-                  placeholder="Kantor Pusat"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="address">Alamat</Label>
-                <Input
-                  id="address"
-                  value={form.address}
-                  onChange={(event) => updateField("address", event.target.value)}
-                  placeholder="Jl. Contoh No. 1"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <Label htmlFor="latitude">Latitude</Label>
-                  <Input
-                    id="latitude"
-                    inputMode="decimal"
-                    value={form.latitude}
-                    onChange={(event) => updateField("latitude", event.target.value)}
-                    placeholder="-6.2087634"
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="longitude">Longitude</Label>
-                  <Input
-                    id="longitude"
-                    inputMode="decimal"
-                    value={form.longitude}
-                    onChange={(event) => updateField("longitude", event.target.value)}
-                    placeholder="106.845599"
-                    required
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="geofenceRadiusMeter">Radius Geofence</Label>
-                <Input
-                  id="geofenceRadiusMeter"
-                  inputMode="numeric"
-                  value={form.geofenceRadiusMeter}
-                  onChange={(event) =>
-                    updateField("geofenceRadiusMeter", event.target.value)
-                  }
-                  required
-                />
-              </div>
-              {createLocationMutation.isError ? (
-                <p className="text-sm text-red-600">Gagal menambah lokasi.</p>
+      <Card>
+        <CardHeader>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <MapPin className="h-4 w-4" />
+                Daftar Lokasi Kerja
+              </CardTitle>
+              <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+                Lokasi kerja, koordinat, dan radius geofence per client.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-sm font-medium text-[var(--muted)]">
+                {locationsQuery.data?.length ?? 0} lokasi
+              </span>
+              {canManageMasterData ? (
+                <Button onClick={openCreateModal} disabled={!clientsQuery.data?.length}>
+                  <Plus className="h-4 w-4" />
+                  Lokasi
+                </Button>
               ) : null}
-              <Button
-                className="w-full"
-                type="submit"
-                disabled={!canSubmit || createLocationMutation.isPending}
-              >
-                {createLocationMutation.isPending ? "Menyimpan..." : "Simpan Lokasi"}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-        ) : null}
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <MapPin className="h-4 w-4" />
-              Daftar Lokasi Kerja
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[1120px] border-collapse text-sm">
-                <thead>
-                  <tr className="border-b border-neutral-200 text-left text-neutral-500">
-                    <th className="py-3 pr-4 font-medium">Client</th>
-                    <th className="py-3 pr-4 font-medium">Lokasi</th>
-                    <th className="py-3 pr-4 font-medium">Koordinat</th>
-                    <th className="py-3 pr-4 font-medium">Radius</th>
-                    <th className="py-3 pr-4 font-medium">Status</th>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[980px] border-collapse text-sm">
+              <thead>
+                <tr className="border-b border-neutral-200 text-left text-neutral-500">
+                  <th className="py-3 pr-4 font-medium">Client</th>
+                  <th className="py-3 pr-4 font-medium">Lokasi</th>
+                  <th className="py-3 pr-4 font-medium">Koordinat</th>
+                  <th className="py-3 pr-4 font-medium">Radius</th>
+                  <th className="py-3 pr-4 font-medium">Status</th>
+                  {canManageMasterData ? (
+                    <th className="py-3 pr-4 font-medium">Aksi</th>
+                  ) : null}
+                </tr>
+              </thead>
+              <tbody>
+                {locationsQuery.data?.map((location) => (
+                  <tr key={location.id} className="border-b border-neutral-100">
+                    <td className="py-3 pr-4">
+                      {location.client.code} - {location.client.name}
+                    </td>
+                    <td className="py-3 pr-4">
+                      <p className="font-medium">{location.name}</p>
+                      <p className="mt-1 text-xs text-[var(--muted)]">
+                        {location.address || "-"}
+                      </p>
+                    </td>
+                    <td className="py-3 pr-4">
+                      {location.latitude}, {location.longitude}
+                    </td>
+                    <td className="py-3 pr-4">{location.geofenceRadiusMeter} m</td>
+                    <td className="py-3 pr-4">
+                      <StatusBadge status={location.isActive} />
+                    </td>
                     {canManageMasterData ? (
-                      <th className="py-3 pr-4 font-medium">Aksi</th>
+                      <td className="py-3 pr-4">
+                        <div className="flex gap-2">
+                          <Button
+                            className="h-9 w-9 px-0"
+                            variant="outline"
+                            onClick={() => openEditModal(location)}
+                            aria-label="Edit lokasi"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            className="h-9 w-9 border-red-200 px-0 text-red-700 hover:border-red-300 hover:bg-red-50"
+                            variant="outline"
+                            onClick={() => setConfirmState({ action: "delete", location })}
+                            disabled={deleteLocationMutation.isPending}
+                            aria-label="Hapus lokasi"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </td>
                     ) : null}
                   </tr>
-                </thead>
-                <tbody>
-                  {locationsQuery.data?.map((location) => {
-                    const isEditing = canManageMasterData && editingLocationId === location.id;
+                ))}
+                {!locationsQuery.isLoading && !locationsQuery.data?.length ? (
+                  <EmptyTableRow colSpan={canManageMasterData ? 6 : 5}>
+                    Belum ada lokasi kerja.
+                  </EmptyTableRow>
+                ) : null}
+                {locationsQuery.isLoading ? (
+                  <LoadingTableRow colSpan={canManageMasterData ? 6 : 5} />
+                ) : null}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
 
-                    return (
-                      <tr key={location.id} className="border-b border-neutral-100">
-                        <td className="py-3 pr-4">
-                          {isEditing ? (
-                            <Select
-                              value={editForm.clientId}
-                              onChange={(event) =>
-                                updateEditField("clientId", event.target.value)
-                              }
-                              className="min-w-56"
-                            >
-                              {clientsQuery.data?.map((client) => (
-                                <option key={client.id} value={client.id}>
-                                  {client.code} - {client.name}
-                                </option>
-                              ))}
-                            </Select>
-                          ) : (
-                            `${location.client.code} - ${location.client.name}`
-                          )}
-                        </td>
-                        <td className="py-3 pr-4">
-                          {isEditing ? (
-                            <div className="space-y-2">
-                              <Input
-                                value={editForm.name}
-                                onChange={(event) => updateEditField("name", event.target.value)}
-                                className="min-w-56"
-                              />
-                              <Input
-                                value={editForm.address}
-                                onChange={(event) =>
-                                  updateEditField("address", event.target.value)
-                                }
-                                placeholder="Alamat"
-                                className="min-w-56"
-                              />
-                            </div>
-                          ) : (
-                            <>
-                              <p className="font-medium">{location.name}</p>
-                              <p className="mt-1 text-xs text-neutral-500">
-                                {location.address || "-"}
-                              </p>
-                            </>
-                          )}
-                        </td>
-                        <td className="py-3 pr-4">
-                          {isEditing ? (
-                            <div className="grid w-64 grid-cols-2 gap-2">
-                              <Input
-                                value={editForm.latitude}
-                                inputMode="decimal"
-                                onChange={(event) =>
-                                  updateEditField("latitude", event.target.value)
-                                }
-                              />
-                              <Input
-                                value={editForm.longitude}
-                                inputMode="decimal"
-                                onChange={(event) =>
-                                  updateEditField("longitude", event.target.value)
-                                }
-                              />
-                            </div>
-                          ) : (
-                            `${location.latitude}, ${location.longitude}`
-                          )}
-                        </td>
-                        <td className="py-3 pr-4">
-                          {isEditing ? (
-                            <Input
-                              value={editForm.geofenceRadiusMeter}
-                              inputMode="numeric"
-                              onChange={(event) =>
-                                updateEditField("geofenceRadiusMeter", event.target.value)
-                              }
-                              className="w-28"
-                            />
-                          ) : (
-                            `${location.geofenceRadiusMeter} m`
-                          )}
-                        </td>
-                        <td className="py-3 pr-4">
-                          {isEditing ? (
-                            <Select
-                              value={editForm.isActive}
-                              onChange={(event) =>
-                                updateEditField("isActive", event.target.value)
-                              }
-                              className="w-32"
-                            >
-                              <option value="true">Active</option>
-                              <option value="false">Inactive</option>
-                            </Select>
-                          ) : (
-                            <StatusBadge status={location.isActive} />
-                          )}
-                        </td>
-                        {canManageMasterData ? (
-                          <td className="py-3 pr-4">
-                            {isEditing ? (
-                              <div className="flex gap-2">
-                                <Button
-                                  className="h-9 w-9 px-0"
-                                  onClick={() => updateLocationMutation.mutate()}
-                                  disabled={updateLocationMutation.isPending}
-                                  aria-label="Simpan perubahan"
-                                >
-                                  <Check className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  className="h-9 w-9 px-0"
-                                  variant="outline"
-                                  onClick={cancelEdit}
-                                  disabled={updateLocationMutation.isPending}
-                                  aria-label="Batal edit"
-                                >
-                                  <X className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            ) : (
-                              <div className="flex gap-2">
-                                <Button
-                                  className="h-9 w-9 px-0"
-                                  variant="outline"
-                                  onClick={() => startEdit(location)}
-                                  aria-label="Edit lokasi"
-                                >
-                                  <Pencil className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  className="h-9 w-9 px-0 text-red-600 hover:bg-red-50"
-                                  variant="outline"
-                                  onClick={() => deleteLocation(location)}
-                                  disabled={deleteLocationMutation.isPending}
-                                  aria-label="Hapus lokasi"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            )}
-                          </td>
-                        ) : null}
-                      </tr>
-                    );
-                  })}
-                  {!locationsQuery.isLoading && !locationsQuery.data?.length ? (
-                    <tr>
-                      <td className="py-6 text-neutral-500" colSpan={canManageMasterData ? 6 : 5}>
-                        Belum ada lokasi kerja.
-                      </td>
-                    </tr>
-                  ) : null}
-                  {locationsQuery.isLoading ? (
-                    <tr>
-                      <td className="py-6 text-neutral-500" colSpan={canManageMasterData ? 6 : 5}>
-                        Memuat data...
-                      </td>
-                    </tr>
-                  ) : null}
-                </tbody>
-              </table>
+      <Modal
+        open={Boolean(modalMode)}
+        title={modalMode === "edit" ? "Edit Lokasi Kerja" : "Tambah Lokasi Kerja"}
+        description="Lengkapi client, alamat, koordinat, dan radius geofence."
+        size="xl"
+        onClose={closeModal}
+        footer={
+          <>
+            <Button variant="outline" onClick={closeModal} disabled={isMutating}>
+              Batal
+            </Button>
+            <Button type="submit" form="location-form" disabled={!canSubmit || isMutating}>
+              {isMutating ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              {modalMode === "edit" ? "Simpan Perubahan" : "Simpan Lokasi"}
+            </Button>
+          </>
+        }
+      >
+        <form id="location-form" className="space-y-4" onSubmit={submitForm}>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="clientId">Client</Label>
+              <Select
+                id="clientId"
+                value={selectedClientId}
+                onChange={(event) => updateField("clientId", event.target.value)}
+                disabled={!clientsQuery.data?.length}
+                required
+              >
+                {!clientsQuery.data?.length ? (
+                  <option value="">Belum ada client</option>
+                ) : null}
+                {clientsQuery.data?.map((client) => (
+                  <option key={client.id} value={client.id}>
+                    {client.code} - {client.name}
+                  </option>
+                ))}
+              </Select>
             </div>
-          </CardContent>
-        </Card>
-      </div>
+            <div className="space-y-2">
+              <Label htmlFor="name">Nama Lokasi</Label>
+              <Input
+                id="name"
+                value={form.name}
+                onChange={(event) => updateField("name", event.target.value)}
+                placeholder="Kantor Pusat"
+                required
+              />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="address">Alamat</Label>
+            <Input
+              id="address"
+              value={form.address}
+              onChange={(event) => updateField("address", event.target.value)}
+              placeholder="Jl. Contoh No. 1"
+            />
+          </div>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div className="space-y-2">
+              <Label htmlFor="latitude">Latitude</Label>
+              <Input
+                id="latitude"
+                inputMode="decimal"
+                value={form.latitude}
+                onChange={(event) => updateField("latitude", event.target.value)}
+                placeholder="-6.2087634"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="longitude">Longitude</Label>
+              <Input
+                id="longitude"
+                inputMode="decimal"
+                value={form.longitude}
+                onChange={(event) => updateField("longitude", event.target.value)}
+                placeholder="106.845599"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="geofenceRadiusMeter">Radius</Label>
+              <Input
+                id="geofenceRadiusMeter"
+                inputMode="numeric"
+                value={form.geofenceRadiusMeter}
+                onChange={(event) => updateField("geofenceRadiusMeter", event.target.value)}
+                required
+              />
+            </div>
+          </div>
+          {getCoordinateError(form) ? (
+            <FormError>{getCoordinateError(form)}</FormError>
+          ) : null}
+          {modalMode === "edit" ? (
+            <div className="space-y-2">
+              <Label htmlFor="isActive">Status</Label>
+              <Select
+                id="isActive"
+                value={form.isActive}
+                onChange={(event) => updateField("isActive", event.target.value)}
+              >
+                <option value="true">Active</option>
+                <option value="false">Inactive</option>
+              </Select>
+            </div>
+          ) : null}
+          {createLocationMutation.isError && modalMode === "create" ? (
+            <FormError>Gagal menambah lokasi.</FormError>
+          ) : null}
+          {updateLocationMutation.isError && modalMode === "edit" ? (
+            <FormError>Gagal memperbarui lokasi.</FormError>
+          ) : null}
+        </form>
+      </Modal>
+
+      <ConfirmDialog
+        open={Boolean(confirmState)}
+        title={getConfirmTitle(confirmState)}
+        description={getConfirmDescription(confirmState)}
+        confirmText={getConfirmText(confirmState)}
+        tone={confirmState?.action === "delete" ? "danger" : "default"}
+        isLoading={isMutating}
+        onCancel={() => setConfirmState(null)}
+        onConfirm={confirmAction}
+      />
     </AdminShell>
   );
+}
+
+function buildPayload(
+  form: LocationForm,
+  selectedClientId: string,
+  includeActive: boolean,
+) {
+  const payload: {
+    clientId: string;
+    name: string;
+    address?: string;
+    latitude: string;
+    longitude: string;
+    geofenceRadiusMeter: number;
+    isActive?: boolean;
+  } = {
+    clientId: selectedClientId,
+    name: form.name,
+    address: form.address || undefined,
+    latitude: form.latitude,
+    longitude: form.longitude,
+    geofenceRadiusMeter: Number(form.geofenceRadiusMeter),
+  };
+
+  if (includeActive) {
+    payload.isActive = form.isActive === "true";
+  }
+
+  return payload;
+}
+
+function getCoordinateError(form: LocationForm) {
+  if (!form.latitude && !form.longitude) return "";
+
+  const latitude = Number(form.latitude);
+  const longitude = Number(form.longitude);
+
+  if (!Number.isFinite(latitude) || latitude < -90 || latitude > 90) {
+    return "Latitude harus berada di rentang -90 sampai 90.";
+  }
+
+  if (!Number.isFinite(longitude) || longitude < -180 || longitude > 180) {
+    return "Longitude harus berada di rentang -180 sampai 180.";
+  }
+
+  return "";
+}
+
+function getConfirmTitle(confirmState: ConfirmState) {
+  return confirmState?.action === "delete" ? "Hapus lokasi?" : "";
+}
+
+function getConfirmDescription(confirmState: ConfirmState) {
+  if (confirmState?.action === "delete") {
+    return `Lokasi ${confirmState.location.name} akan dihapus dari master data.`;
+  }
+
+  return "";
+}
+
+function getConfirmText(confirmState: ConfirmState) {
+  return confirmState?.action === "delete" ? "Hapus Lokasi" : "Konfirmasi";
 }

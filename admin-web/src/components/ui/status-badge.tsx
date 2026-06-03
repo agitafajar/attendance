@@ -6,17 +6,17 @@ type StatusBadgeProps = {
 };
 
 const statusTones: Record<string, string> = {
-  ACTIVE: "border-[var(--brand-900)]/20 bg-[var(--brand-900)]/8 text-[var(--brand-900)]",
-  APPROVED: "border-[var(--brand-900)]/20 bg-[var(--brand-900)]/8 text-[var(--brand-900)]",
-  PRESENT: "border-[var(--brand-900)]/20 bg-[var(--brand-900)]/8 text-[var(--brand-900)]",
-  SUBMITTED: "border-[var(--brand-yellow)] bg-[var(--brand-yellow)]/35 text-[var(--brand-900)]",
-  PENDING: "border-[var(--brand-yellow)] bg-[var(--brand-yellow)]/35 text-[var(--brand-900)]",
-  PENDING_APPROVAL: "border-[var(--brand-yellow)] bg-[var(--brand-yellow)]/35 text-[var(--brand-900)]",
-  LATE: "border-[var(--brand-500)]/35 bg-[var(--brand-500)]/12 text-[var(--brand-700)]",
-  LEAVE: "border-[var(--brand-700)]/20 bg-[var(--brand-700)]/8 text-[var(--brand-700)]",
+  ACTIVE: "border-emerald-200 bg-emerald-50 text-emerald-700",
+  APPROVED: "border-emerald-200 bg-emerald-50 text-emerald-700",
+  PRESENT: "border-emerald-200 bg-emerald-50 text-emerald-700",
+  SUBMITTED: "border-amber-200 bg-amber-50 text-amber-700",
+  PENDING: "border-amber-200 bg-amber-50 text-amber-700",
+  PENDING_APPROVAL: "border-amber-200 bg-amber-50 text-amber-700",
+  LATE: "border-orange-200 bg-orange-50 text-orange-700",
+  LEAVE: "border-sky-200 bg-sky-50 text-sky-700",
   DRAFT: "border-[var(--border)] bg-[var(--surface-soft)] text-[var(--muted-strong)]",
-  ABSENT: "border-[var(--brand-700)]/25 bg-[var(--brand-700)]/10 text-[var(--brand-700)]",
-  REJECTED: "border-[var(--brand-700)]/25 bg-[var(--brand-700)]/10 text-[var(--brand-700)]",
+  ABSENT: "border-red-200 bg-red-50 text-red-700",
+  REJECTED: "border-red-200 bg-red-50 text-red-700",
   INACTIVE: "border-[var(--border)] bg-[var(--surface-soft)] text-[var(--muted-strong)]",
 };
 

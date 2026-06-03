@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { SummaryChip } from "@/components/ui/summary-chip";
 import { api } from "@/lib/api";
 
 type LeaveRequest = {
@@ -109,7 +110,7 @@ export default function LeaveRequestsPage() {
               Filter Leave Requests
             </CardTitle>
             <div className="flex flex-wrap gap-2">
-              <SummaryChip label={`${activeFilterCount} active`} value="Filters" />
+              <SummaryChip label={`${activeFilterCount} active`} value="Filters" tone="teal" />
               <SummaryChip
                 label={leaveRequestsQuery.isLoading ? "Loading" : `${rows.length} rows`}
                 value="Result"
@@ -178,9 +179,7 @@ export default function LeaveRequestsPage() {
       <Card className="mt-4">
         <CardHeader className="flex flex-row items-center justify-between space-y-0">
           <CardTitle>Daftar Leave Requests</CardTitle>
-          <span className="rounded-md border border-[#e2dccf] bg-[#fffaf0] px-2.5 py-1 text-xs font-semibold text-[#667063]">
-            {rows.length} rows
-          </span>
+          <SummaryChip label={`${rows.length} rows`} value="Result" />
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
@@ -272,13 +271,4 @@ export default function LeaveRequestsPage() {
 
 function formatDate(value: string) {
   return value.slice(0, 10);
-}
-
-function SummaryChip({ label, value }: { label: string; value: string }) {
-  return (
-    <span className="inline-flex items-center gap-2 rounded-md border border-[#e2dccf] bg-[#fffaf0] px-2.5 py-1 text-xs">
-      <span className="font-semibold text-[#17211d]">{label}</span>
-      <span className="text-[#667063]">{value}</span>
-    </span>
-  );
 }

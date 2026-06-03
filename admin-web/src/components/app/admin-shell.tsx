@@ -94,15 +94,15 @@ export function AdminShell({
 
   return (
     <main className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
-      <aside className="fixed inset-y-0 left-0 hidden w-64 border-r border-[var(--brand-900)] bg-[var(--brand-900)] text-white lg:block">
+      <aside className="fixed inset-y-0 left-0 hidden w-[17rem] border-r border-white/10 bg-[var(--brand-950)] text-white shadow-2xl shadow-slate-950/10 lg:block">
         <div className="border-b border-white/10 px-5 py-5">
           <div className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-md bg-[var(--brand-yellow)] text-[var(--brand-900)]">
+            <div className="flex h-10 w-10 items-center justify-center rounded-md bg-[var(--brand-500)] text-white shadow-lg shadow-teal-950/25">
               <BarChart3 className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-sm font-semibold">Alih Daya</p>
-              <p className="text-xs text-white/50">Attendance Admin</p>
+              <p className="text-sm font-semibold tracking-wide">Alih Daya</p>
+              <p className="text-xs text-white/55">Attendance Admin</p>
             </div>
           </div>
         </div>
@@ -116,43 +116,59 @@ export function AdminShell({
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex h-10 items-center gap-3 rounded-md px-3 text-sm font-medium text-white/62 transition-colors hover:bg-white/8 hover:text-white",
+                  "flex h-10 items-center gap-3 rounded-md px-3 text-sm font-medium text-white/62 transition-all hover:bg-white/8 hover:text-white",
                   isActive &&
-                    "bg-[var(--brand-yellow)] text-[var(--brand-900)] hover:bg-[var(--brand-yellow)] hover:text-[var(--brand-900)]",
+                    "bg-white text-[var(--brand-950)] shadow-sm hover:bg-white hover:text-[var(--brand-950)]",
                 )}
               >
-                <Icon className="h-4 w-4" />
-                {item.label}
+                <Icon className={cn("h-4 w-4", isActive && "text-[var(--brand-700)]")} />
+                <span className="truncate">{item.label}</span>
               </Link>
             );
           })}
         </nav>
       </aside>
 
-      <section className="lg:pl-64">
-        <header className="border-b border-[var(--border)] bg-[var(--surface)]/92 backdrop-blur">
-          <div className="flex min-h-16 items-center justify-between gap-4 px-5 py-4 lg:px-6">
-            <div>
-              <h1 className="text-xl font-semibold text-[var(--foreground)]">{title}</h1>
+      <section className="lg:pl-[17rem]">
+        <header className="sticky top-0 z-20 border-b border-[var(--border)] bg-[var(--surface)]/88 backdrop-blur-xl">
+          <div className="flex min-h-18 items-center justify-between gap-4 px-5 py-4 lg:px-8">
+            <div className="min-w-0">
+              <p className="mb-1 hidden text-xs font-semibold uppercase tracking-[0.12em] text-[var(--brand-700)] sm:block">
+                Operations Console
+              </p>
+              <h1 className="truncate text-xl font-semibold text-[var(--foreground)] sm:text-2xl">
+                {title}
+              </h1>
               {description ? (
-                <p className="mt-1 text-sm text-[var(--muted)]">{description}</p>
+                <p className="mt-1 max-w-3xl text-sm leading-6 text-[var(--muted)]">
+                  {description}
+                </p>
               ) : null}
             </div>
             <div className="flex items-center gap-3">
-              <span className="hidden max-w-56 truncate text-sm text-[var(--muted)] sm:inline">
-                {user?.email}
-              </span>
+              <div className="hidden items-center gap-3 rounded-md border border-[var(--border)] bg-white px-3 py-2 shadow-sm shadow-slate-900/4 md:flex">
+                <div className="flex h-8 w-8 items-center justify-center rounded-md bg-[var(--surface-soft)] text-xs font-bold text-[var(--brand-900)]">
+                  {user?.email?.slice(0, 1).toUpperCase() ?? "A"}
+                </div>
+                <div className="min-w-0">
+                  <p className="max-w-44 truncate text-sm font-semibold text-[var(--foreground)]">
+                    {user?.email}
+                  </p>
+                  <p className="text-xs text-[var(--muted)]">{role ?? "User"}</p>
+                </div>
+              </div>
               <Button
                 variant="outline"
+                className="h-10 px-3 sm:px-4"
                 onClick={logout}
               >
                 <LogOut className="h-4 w-4" />
-                Keluar
+                <span className="hidden sm:inline">Keluar</span>
               </Button>
             </div>
           </div>
         </header>
-        <div className="px-5 py-5 lg:px-6">{children}</div>
+        <div className="px-5 py-6 lg:px-8 lg:py-8">{children}</div>
       </section>
     </main>
   );
