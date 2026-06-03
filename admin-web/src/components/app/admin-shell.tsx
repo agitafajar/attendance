@@ -93,16 +93,16 @@ export function AdminShell({
   }
 
   return (
-    <main className="min-h-screen bg-neutral-100">
-      <aside className="fixed inset-y-0 left-0 hidden w-64 border-r border-neutral-200 bg-white lg:block">
-        <div className="border-b border-neutral-200 px-5 py-5">
+    <main className="min-h-screen bg-[#f4f1ea] text-[#17211d]">
+      <aside className="fixed inset-y-0 left-0 hidden w-64 border-r border-[#d8d2c6] bg-[#17211d] text-white lg:block">
+        <div className="border-b border-white/10 px-5 py-5">
           <div className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-md bg-neutral-950 text-white">
+            <div className="flex h-9 w-9 items-center justify-center rounded-md bg-[#d7ff70] text-[#17211d]">
               <BarChart3 className="h-5 w-5" />
             </div>
             <div>
               <p className="text-sm font-semibold">Alih Daya</p>
-              <p className="text-xs text-neutral-500">Attendance Admin</p>
+              <p className="text-xs text-white/50">Attendance Admin</p>
             </div>
           </div>
         </div>
@@ -116,8 +116,9 @@ export function AdminShell({
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex h-10 items-center gap-3 rounded-md px-3 text-sm font-medium text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-950",
-                  isActive && "bg-neutral-950 text-white hover:bg-neutral-950 hover:text-white",
+                  "flex h-10 items-center gap-3 rounded-md px-3 text-sm font-medium text-white/62 transition-colors hover:bg-white/8 hover:text-white",
+                  isActive &&
+                    "bg-[#d7ff70] text-[#17211d] hover:bg-[#d7ff70] hover:text-[#17211d]",
                 )}
               >
                 <Icon className="h-4 w-4" />
@@ -129,19 +130,23 @@ export function AdminShell({
       </aside>
 
       <section className="lg:pl-64">
-        <header className="border-b border-neutral-200 bg-white">
+        <header className="border-b border-[#d8d2c6] bg-[#fffdf8]/92 backdrop-blur">
           <div className="flex min-h-16 items-center justify-between gap-4 px-5 py-4 lg:px-6">
             <div>
-              <h1 className="text-xl font-semibold">{title}</h1>
+              <h1 className="text-xl font-semibold text-[#17211d]">{title}</h1>
               {description ? (
-                <p className="mt-1 text-sm text-neutral-500">{description}</p>
+                <p className="mt-1 text-sm text-[#667063]">{description}</p>
               ) : null}
             </div>
             <div className="flex items-center gap-3">
-              <span className="hidden max-w-56 truncate text-sm text-neutral-600 sm:inline">
+              <span className="hidden max-w-56 truncate text-sm text-[#667063] sm:inline">
                 {user?.email}
               </span>
-              <Button variant="outline" onClick={logout}>
+              <Button
+                variant="outline"
+                className="border-[#cfc7b8] bg-white text-[#17211d] hover:bg-[#f0eadf]"
+                onClick={logout}
+              >
                 <LogOut className="h-4 w-4" />
                 Keluar
               </Button>

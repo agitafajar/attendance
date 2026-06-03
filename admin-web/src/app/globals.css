@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f6f7f9;
-  --foreground: #171717;
+  --background: #f4f1ea;
+  --foreground: #17211d;
 }
 
 @theme inline {
@@ -16,9 +16,71 @@
   box-sizing: border-box;
 }
 
+button,
+[role="button"],
+a,
+select,
+summary {
+  cursor: pointer;
+}
+
+button:disabled,
+select:disabled,
+[aria-disabled="true"] {
+  cursor: not-allowed;
+}
+
 body {
   margin: 0;
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}
+
+main table {
+  border-color: #d8d2c6;
+}
+
+main .overflow-x-auto {
+  border: 1px solid #e2dccf;
+  border-radius: 8px;
+}
+
+main thead tr {
+  border-color: #d8d2c6;
+  background: #fffaf0;
+}
+
+main th {
+  color: #667063;
+  white-space: nowrap;
+}
+
+main tbody tr {
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease;
+}
+
+main tbody tr:hover {
+  background: #fffaf3;
+}
+
+main td {
+  color: #252c28;
+  vertical-align: top;
+}
+
+main td:first-child,
+main th:first-child {
+  padding-left: 1rem;
+}
+
+main td:last-child,
+main th:last-child {
+  padding-right: 1rem;
+}
+
+main tbody tr:last-child {
+  border-bottom: 0;
 }

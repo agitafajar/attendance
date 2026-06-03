@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { api } from "@/lib/api";
 
 const MASTER_DATA_ROLES = ["ADMIN", "SUPERVISOR"] as const;
@@ -331,7 +332,6 @@ export default function WorkLocationsPage() {
 
                     return (
                       <tr key={location.id} className="border-b border-neutral-100">
-                        {canManageMasterData ? (
                         <td className="py-3 pr-4">
                           {isEditing ? (
                             <Select
@@ -351,7 +351,6 @@ export default function WorkLocationsPage() {
                             `${location.client.code} - ${location.client.name}`
                           )}
                         </td>
-                        ) : null}
                         <td className="py-3 pr-4">
                           {isEditing ? (
                             <div className="space-y-2">
@@ -427,54 +426,54 @@ export default function WorkLocationsPage() {
                               <option value="false">Inactive</option>
                             </Select>
                           ) : (
-                            <span className="rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700">
-                              {location.isActive ? "Active" : "Inactive"}
-                            </span>
+                            <StatusBadge status={location.isActive} />
                           )}
                         </td>
-                        <td className="py-3 pr-4">
-                          {isEditing ? (
-                            <div className="flex gap-2">
-                              <Button
-                                className="h-9 w-9 px-0"
-                                onClick={() => updateLocationMutation.mutate()}
-                                disabled={updateLocationMutation.isPending}
-                                aria-label="Simpan perubahan"
-                              >
-                                <Check className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                className="h-9 w-9 px-0"
-                                variant="outline"
-                                onClick={cancelEdit}
-                                disabled={updateLocationMutation.isPending}
-                                aria-label="Batal edit"
-                              >
-                                <X className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          ) : (
-                            <div className="flex gap-2">
-                              <Button
-                                className="h-9 w-9 px-0"
-                                variant="outline"
-                                onClick={() => startEdit(location)}
-                                aria-label="Edit lokasi"
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                className="h-9 w-9 px-0 text-red-600 hover:bg-red-50"
-                                variant="outline"
-                                onClick={() => deleteLocation(location)}
-                                disabled={deleteLocationMutation.isPending}
-                                aria-label="Hapus lokasi"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          )}
-                        </td>
+                        {canManageMasterData ? (
+                          <td className="py-3 pr-4">
+                            {isEditing ? (
+                              <div className="flex gap-2">
+                                <Button
+                                  className="h-9 w-9 px-0"
+                                  onClick={() => updateLocationMutation.mutate()}
+                                  disabled={updateLocationMutation.isPending}
+                                  aria-label="Simpan perubahan"
+                                >
+                                  <Check className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  className="h-9 w-9 px-0"
+                                  variant="outline"
+                                  onClick={cancelEdit}
+                                  disabled={updateLocationMutation.isPending}
+                                  aria-label="Batal edit"
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            ) : (
+                              <div className="flex gap-2">
+                                <Button
+                                  className="h-9 w-9 px-0"
+                                  variant="outline"
+                                  onClick={() => startEdit(location)}
+                                  aria-label="Edit lokasi"
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  className="h-9 w-9 px-0 text-red-600 hover:bg-red-50"
+                                  variant="outline"
+                                  onClick={() => deleteLocation(location)}
+                                  disabled={deleteLocationMutation.isPending}
+                                  aria-label="Hapus lokasi"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            )}
+                          </td>
+                        ) : null}
                       </tr>
                     );
                   })}

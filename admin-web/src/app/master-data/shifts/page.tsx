@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { api } from "@/lib/api";
 
 const MASTER_DATA_ROLES = ["ADMIN", "SUPERVISOR"] as const;
@@ -284,7 +285,6 @@ export default function ShiftsPage() {
                             shift.code
                           )}
                         </td>
-                        {canManageMasterData ? (
                         <td className="py-3 pr-4">
                           {isEditing ? (
                             <Input
@@ -296,7 +296,6 @@ export default function ShiftsPage() {
                             shift.name
                           )}
                         </td>
-                        ) : null}
                         <td className="py-3 pr-4">
                           {isEditing ? (
                             <div className="grid w-56 grid-cols-2 gap-2">
@@ -346,54 +345,54 @@ export default function ShiftsPage() {
                               <option value="false">Inactive</option>
                             </Select>
                           ) : (
-                            <span className="rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700">
-                              {shift.isActive ? "Active" : "Inactive"}
-                            </span>
+                            <StatusBadge status={shift.isActive} />
                           )}
                         </td>
-                        <td className="py-3 pr-4">
-                          {isEditing ? (
-                            <div className="flex gap-2">
-                              <Button
-                                className="h-9 w-9 px-0"
-                                onClick={() => updateShiftMutation.mutate()}
-                                disabled={updateShiftMutation.isPending}
-                                aria-label="Simpan perubahan"
-                              >
-                                <Check className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                className="h-9 w-9 px-0"
-                                variant="outline"
-                                onClick={cancelEdit}
-                                disabled={updateShiftMutation.isPending}
-                                aria-label="Batal edit"
-                              >
-                                <X className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          ) : (
-                            <div className="flex gap-2">
-                              <Button
-                                className="h-9 w-9 px-0"
-                                variant="outline"
-                                onClick={() => startEdit(shift)}
-                                aria-label="Edit shift"
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                className="h-9 w-9 px-0 text-red-600 hover:bg-red-50"
-                                variant="outline"
-                                onClick={() => deleteShift(shift)}
-                                disabled={deleteShiftMutation.isPending}
-                                aria-label="Hapus shift"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          )}
-                        </td>
+                        {canManageMasterData ? (
+                          <td className="py-3 pr-4">
+                            {isEditing ? (
+                              <div className="flex gap-2">
+                                <Button
+                                  className="h-9 w-9 px-0"
+                                  onClick={() => updateShiftMutation.mutate()}
+                                  disabled={updateShiftMutation.isPending}
+                                  aria-label="Simpan perubahan"
+                                >
+                                  <Check className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  className="h-9 w-9 px-0"
+                                  variant="outline"
+                                  onClick={cancelEdit}
+                                  disabled={updateShiftMutation.isPending}
+                                  aria-label="Batal edit"
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            ) : (
+                              <div className="flex gap-2">
+                                <Button
+                                  className="h-9 w-9 px-0"
+                                  variant="outline"
+                                  onClick={() => startEdit(shift)}
+                                  aria-label="Edit shift"
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  className="h-9 w-9 px-0 text-red-600 hover:bg-red-50"
+                                  variant="outline"
+                                  onClick={() => deleteShift(shift)}
+                                  disabled={deleteShiftMutation.isPending}
+                                  aria-label="Hapus shift"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            )}
+                          </td>
+                        ) : null}
                       </tr>
                     );
                   })}

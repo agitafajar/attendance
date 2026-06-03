@@ -345,14 +345,12 @@ export default function EmployeesPage() {
                           {employee.employeeNumber}
                         </td>
                         <td className="py-3 pr-4">{employee.user.fullName}</td>
-                        {canManageMasterData ? (
                         <td className="py-3 pr-4">
                           <p>{employee.user.email}</p>
                           <p className="mt-1 text-xs text-neutral-500">
                             {employee.user.phone || "-"}
                           </p>
                         </td>
-                        ) : null}
                         <td className="py-3 pr-4">
                           {isEditing ? (
                             <Select
@@ -399,49 +397,51 @@ export default function EmployeesPage() {
                             employee.employmentStatus || "-"
                           )}
                         </td>
-                        <td className="py-3 pr-4">
-                          {isEditing ? (
-                            <div className="flex gap-2">
-                              <Button
-                                className="h-9 w-9 px-0"
-                                onClick={() => updateEmployeeMutation.mutate()}
-                                disabled={updateEmployeeMutation.isPending}
-                                aria-label="Simpan perubahan"
-                              >
-                                <Check className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                className="h-9 w-9 px-0"
-                                variant="outline"
-                                onClick={cancelEdit}
-                                disabled={updateEmployeeMutation.isPending}
-                                aria-label="Batal edit"
-                              >
-                                <X className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          ) : (
-                            <div className="flex gap-2">
-                              <Button
-                                className="h-9 w-9 px-0"
-                                variant="outline"
-                                onClick={() => startEdit(employee)}
-                                aria-label="Edit employee"
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                className="h-9 w-9 px-0 text-red-600 hover:bg-red-50"
-                                variant="outline"
-                                onClick={() => deleteEmployee(employee)}
-                                disabled={deleteEmployeeMutation.isPending}
-                                aria-label="Hapus employee"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          )}
-                        </td>
+                        {canManageMasterData ? (
+                          <td className="py-3 pr-4">
+                            {isEditing ? (
+                              <div className="flex gap-2">
+                                <Button
+                                  className="h-9 w-9 px-0"
+                                  onClick={() => updateEmployeeMutation.mutate()}
+                                  disabled={updateEmployeeMutation.isPending}
+                                  aria-label="Simpan perubahan"
+                                >
+                                  <Check className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  className="h-9 w-9 px-0"
+                                  variant="outline"
+                                  onClick={cancelEdit}
+                                  disabled={updateEmployeeMutation.isPending}
+                                  aria-label="Batal edit"
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            ) : (
+                              <div className="flex gap-2">
+                                <Button
+                                  className="h-9 w-9 px-0"
+                                  variant="outline"
+                                  onClick={() => startEdit(employee)}
+                                  aria-label="Edit employee"
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  className="h-9 w-9 px-0 text-red-600 hover:bg-red-50"
+                                  variant="outline"
+                                  onClick={() => deleteEmployee(employee)}
+                                  disabled={deleteEmployeeMutation.isPending}
+                                  aria-label="Hapus employee"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            )}
+                          </td>
+                        ) : null}
                       </tr>
                     );
                   })}

@@ -6,9 +6,9 @@ type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
 };
 
 const variants = {
-  default: "bg-neutral-950 text-white hover:bg-neutral-800",
-  outline: "border border-neutral-300 bg-white hover:bg-neutral-100",
-  ghost: "hover:bg-neutral-100",
+  default: "bg-[#17211d] text-white shadow-sm hover:bg-[#26332d]",
+  outline: "border border-[#cfc7b8] bg-white text-[#17211d] hover:bg-[#f0eadf]",
+  ghost: "text-[#17211d] hover:bg-[#f0eadf]",
 };
 
 export function Button({
@@ -21,7 +21,7 @@ export function Button({
     <button
       type={type}
       className={cn(
-        "inline-flex h-10 items-center justify-center gap-2 rounded-md px-4 text-sm font-medium transition-colors disabled:pointer-events-none disabled:opacity-50",
+        "inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-md px-4 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50",
         variants[variant],
         className,
       )}

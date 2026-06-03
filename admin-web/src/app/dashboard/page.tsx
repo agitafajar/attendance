@@ -5,10 +5,12 @@ import { useQuery } from "@tanstack/react-query";
 import {
   Activity,
   AlertTriangle,
+  ArrowUpRight,
   CalendarCheck,
   ClipboardCheck,
   Clock,
   NotebookTabs,
+  ShieldCheck,
   Users,
 } from "lucide-react";
 import { api } from "@/lib/api";
@@ -98,8 +100,8 @@ export default function DashboardPage() {
       user={user}
     >
       {dashboardQuery.isError ? (
-        <Card className="border-red-200">
-          <CardContent className="pt-6 text-sm text-red-600">
+        <Card className="border-[#f0b5a8] bg-[#fff1ee] shadow-none">
+          <CardContent className="pt-6 text-sm text-[#9b2f1d]">
             Gagal memuat dashboard. Silakan login ulang atau hubungi admin.
           </CardContent>
         </Card>
@@ -132,34 +134,60 @@ function AdminDashboardView({ dashboard }: { dashboard?: AdminDashboard }) {
           title="Total Employees"
           value={dashboard?.totalEmployees}
           icon={<Users className="h-5 w-5" />}
+          tone="charcoal"
         />
         <MetricCard
           title="Present Today"
           value={dashboard?.presentToday}
           icon={<CalendarCheck className="h-5 w-5" />}
+          tone="green"
         />
         <MetricCard
           title="Late"
           value={dashboard?.late}
           icon={<Clock className="h-5 w-5" />}
+          tone="amber"
         />
         <MetricCard
           title="Absent"
           value={dashboard?.absent}
           icon={<AlertTriangle className="h-5 w-5" />}
+          tone="rose"
         />
       </div>
 
-      <Card className="mt-4">
-        <CardHeader>
-          <CardTitle>Activity Statistics</CardTitle>
+      <Card className="mt-4 border-[#d9d2c4] bg-[#fffdf8] shadow-[0_18px_50px_rgba(38,30,17,0.08)]">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0">
+          <div>
+            <CardTitle className="text-base text-[#17211d]">
+              Activity Statistics
+            </CardTitle>
+            <p className="mt-1 text-sm text-[#667063]">
+              Status kegiatan harian yang tercatat hari ini.
+            </p>
+          </div>
+          <div className="hidden h-10 w-10 items-center justify-center rounded-md bg-[#17211d] text-[#d7ff70] sm:flex">
+            <Activity className="h-5 w-5" />
+          </div>
         </CardHeader>
         <CardContent>
           <div className="grid gap-3 sm:grid-cols-4">
-            <SmallStat label="Total Today" value={dashboard?.activityStatistics.totalToday} />
-            <SmallStat label="Submitted" value={dashboard?.activityStatistics.submitted} />
-            <SmallStat label="Approved" value={dashboard?.activityStatistics.approved} />
-            <SmallStat label="Rejected" value={dashboard?.activityStatistics.rejected} />
+            <SmallStat
+              label="Total Today"
+              value={dashboard?.activityStatistics.totalToday}
+            />
+            <SmallStat
+              label="Submitted"
+              value={dashboard?.activityStatistics.submitted}
+            />
+            <SmallStat
+              label="Approved"
+              value={dashboard?.activityStatistics.approved}
+            />
+            <SmallStat
+              label="Rejected"
+              value={dashboard?.activityStatistics.rejected}
+            />
           </div>
         </CardContent>
       </Card>
@@ -174,21 +202,25 @@ function SupervisorDashboardView({ dashboard }: { dashboard?: SupervisorDashboar
         title="Team Employees"
         value={dashboard?.totalEmployees}
         icon={<Users className="h-5 w-5" />}
+        tone="charcoal"
       />
       <MetricCard
         title="Pending Attendance"
         value={dashboard?.pendingAttendance}
         icon={<ClipboardCheck className="h-5 w-5" />}
+        tone="amber"
       />
       <MetricCard
         title="Pending Activities"
         value={dashboard?.pendingActivities}
         icon={<Activity className="h-5 w-5" />}
+        tone="green"
       />
       <MetricCard
         title="Pending Leaves"
         value={dashboard?.pendingLeaves}
         icon={<NotebookTabs className="h-5 w-5" />}
+        tone="teal"
       />
     </div>
   );
@@ -204,27 +236,39 @@ function EmployeeDashboardView({ dashboard }: { dashboard?: EmployeeDashboard })
           title="Attendance Status"
           valueText={attendance?.status ?? "No attendance"}
           icon={<CalendarCheck className="h-5 w-5" />}
+          tone="green"
         />
         <MetricCard
           title="Late Minutes"
           value={attendance?.lateMinutes ?? 0}
           icon={<Clock className="h-5 w-5" />}
+          tone="amber"
         />
         <MetricCard
           title="Activities Today"
           value={dashboard?.myActivities.length}
           icon={<Activity className="h-5 w-5" />}
+          tone="teal"
         />
         <MetricCard
           title="Recent Leaves"
           value={dashboard?.myLeaveRequests.length}
           icon={<NotebookTabs className="h-5 w-5" />}
+          tone="charcoal"
         />
       </div>
 
-      <Card className="mt-4">
-        <CardHeader>
-          <CardTitle>My Profile</CardTitle>
+      <Card className="mt-4 border-[#d9d2c4] bg-[#fffdf8] shadow-[0_18px_50px_rgba(38,30,17,0.08)]">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0">
+          <div>
+            <CardTitle className="text-base text-[#17211d]">My Profile</CardTitle>
+            <p className="mt-1 text-sm text-[#667063]">
+              Identitas karyawan aktif untuk sesi ini.
+            </p>
+          </div>
+          <div className="hidden h-10 w-10 items-center justify-center rounded-md bg-[#17211d] text-[#d7ff70] sm:flex">
+            <ShieldCheck className="h-5 w-5" />
+          </div>
         </CardHeader>
         <CardContent>
           <div className="grid gap-3 text-sm sm:grid-cols-3">
@@ -243,20 +287,60 @@ function MetricCard({
   value,
   valueText,
   icon,
+  tone = "charcoal",
 }: {
   title: string;
   value?: number;
   valueText?: string;
   icon: ReactNode;
+  tone?: "charcoal" | "green" | "amber" | "rose" | "teal";
 }) {
+  const tones = {
+    charcoal: {
+      card: "border-[#d9d2c4] bg-[#fffdf8]",
+      icon: "bg-[#17211d] text-[#d7ff70]",
+      accent: "text-[#17211d]",
+    },
+    green: {
+      card: "border-[#c8dec2] bg-[#f8fff4]",
+      icon: "bg-[#d7ff70] text-[#17211d]",
+      accent: "text-[#27624d]",
+    },
+    amber: {
+      card: "border-[#ead2a4] bg-[#fff9ea]",
+      icon: "bg-[#f0b84b] text-[#17211d]",
+      accent: "text-[#8a5b10]",
+    },
+    rose: {
+      card: "border-[#efc5bd] bg-[#fff5f2]",
+      icon: "bg-[#d85d47] text-white",
+      accent: "text-[#9b2f1d]",
+    },
+    teal: {
+      card: "border-[#badbd3] bg-[#f2fffb]",
+      icon: "bg-[#197c68] text-white",
+      accent: "text-[#197c68]",
+    },
+  }[tone];
+
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium text-neutral-500">{title}</CardTitle>
-        <div className="text-neutral-500">{icon}</div>
+    <Card
+      className={`overflow-hidden shadow-[0_18px_50px_rgba(38,30,17,0.08)] ${tones.card}`}
+    >
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+        <CardTitle className="text-sm font-medium text-[#667063]">{title}</CardTitle>
+        <div className={`flex h-10 w-10 items-center justify-center rounded-md ${tones.icon}`}>
+          {icon}
+        </div>
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-semibold">{valueText ?? value ?? "-"}</div>
+        <div className={`text-3xl font-semibold tracking-normal ${tones.accent}`}>
+          {valueText ?? value ?? "-"}
+        </div>
+        <div className="mt-4 flex items-center gap-1 text-xs font-medium text-[#667063]">
+          <ArrowUpRight className="h-3.5 w-3.5" />
+          Real-time summary
+        </div>
       </CardContent>
     </Card>
   );
@@ -272,9 +356,11 @@ function SmallStat({
   valueText?: string;
 }) {
   return (
-    <div className="rounded-md border border-neutral-200 p-3">
-      <p className="text-sm text-neutral-500">{label}</p>
-      <p className="mt-1 text-xl font-semibold">{valueText ?? value ?? "-"}</p>
+    <div className="rounded-md border border-[#e2dacd] bg-white p-3">
+      <p className="text-sm text-[#667063]">{label}</p>
+      <p className="mt-1 text-xl font-semibold text-[#17211d]">
+        {valueText ?? value ?? "-"}
+      </p>
     </div>
   );
 }

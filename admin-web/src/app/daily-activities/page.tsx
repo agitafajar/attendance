@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { api } from "@/lib/api";
 
 type DailyActivity = {
@@ -172,9 +173,7 @@ export default function DailyActivitiesPage() {
                     <td className="py-3 pr-4">{activity.photos.length}</td>
                     <td className="py-3 pr-4">{activity.approvedBy?.fullName || "-"}</td>
                     <td className="py-3 pr-4">
-                      <span className="rounded-md bg-neutral-100 px-2 py-1 text-xs font-medium text-neutral-700">
-                        {activity.status}
-                      </span>
+                      <StatusBadge status={activity.status} />
                     </td>
                   </tr>
                 ))}

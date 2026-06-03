@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { api } from "@/lib/api";
 
 const REPORT_ROLES = ["ADMIN", "SUPERVISOR"] as const;
@@ -365,7 +366,7 @@ export default function ReportsPage() {
                   <tr key={index} className="border-b border-neutral-100">
                     {columns.map((column) => (
                       <td key={column.key} className="py-3 pr-4">
-                        {formatValue(getValue(row, column.key))}
+                        {formatReportCell(row, column.key)}
                       </td>
                     ))}
                   </tr>
@@ -453,4 +454,18 @@ function formatValue(value: unknown) {
     return value.slice(0, 10);
   }
   return String(value);
+}
+
+function formatReportCell(row: unknown, key: string) {
+  const value = getValue(row, key);
+
+  if (key === "status" && typeof value === "string") {
+    return <StatusBadge status={value} />;
+  }
+
+  if (key === "isActive" && typeof value === "boolean") {
+    return <StatusBadge status={value} />;
+  }
+
+  return formatValue(value);
 }

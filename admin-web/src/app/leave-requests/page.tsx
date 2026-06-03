@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { api } from "@/lib/api";
 
 type LeaveRequest = {
@@ -203,9 +204,7 @@ export default function LeaveRequestsPage() {
                     </td>
                     <td className="py-3 pr-4">{leave.approvedBy?.fullName || "-"}</td>
                     <td className="py-3 pr-4">
-                      <span className="rounded-md bg-neutral-100 px-2 py-1 text-xs font-medium text-neutral-700">
-                        {leave.status}
-                      </span>
+                      <StatusBadge status={leave.status} />
                     </td>
                   </tr>
                 ))}
