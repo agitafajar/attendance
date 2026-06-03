@@ -13,6 +13,9 @@ export function validateEnv(config: Env) {
     throw new Error(`Missing required env vars: ${missingKeys.join(', ')}`);
   }
 
+  validateSecret('JWT_SECRET', config.JWT_SECRET);
+  validateSecret('JWT_REFRESH_SECRET', config.JWT_REFRESH_SECRET);
+
   const port = Number(config.PORT ?? 3000);
 
   if (!Number.isInteger(port) || port <= 0) {
@@ -29,6 +32,12 @@ export function validateEnv(config: Env) {
 
   if (!['local', 'cloudinary'].includes(uploadStorage)) {
     throw new Error('UPLOAD_STORAGE must be either local or cloudinary');
+  }
+
+  const corsOrigin = config.CORS_ORIGIN ?? '*';
+
+  if (config.NODE_ENV === 'production' && corsOrigin === '*') {
+    throw new Error('CORS_ORIGIN must not be * in production');
   }
 
   if (uploadStorage === 'cloudinary') {
@@ -51,7 +60,7 @@ export function validateEnv(config: Env) {
     UPLOAD_STORAGE: uploadStorage,
     UPLOAD_MAX_SIZE_MB: String(uploadMaxSizeMb),
     UPLOAD_DIR: config.UPLOAD_DIR ?? './uploads',
-    CORS_ORIGIN: config.CORS_ORIGIN ?? '*',
+    CORS_ORIGIN: corsOrigin,
     RATE_LIMIT_TTL: config.RATE_LIMIT_TTL ?? '60',
     RATE_LIMIT_LIMIT: config.RATE_LIMIT_LIMIT ?? '120',
     SWAGGER_ENABLED: config.SWAGGER_ENABLED ?? 'false',
@@ -60,4 +69,16 @@ export function validateEnv(config: Env) {
     CLOUDINARY_API_SECRET: config.CLOUDINARY_API_SECRET,
     CLOUDINARY_FOLDER: config.CLOUDINARY_FOLDER ?? 'alih-daya-attendance',
   };
+}
+
+function validateSecret(name: string, value?: string) {
+  if (!value) {
+    return;
+  }
+
+  if (value.startsWith('change_this') || value.length < 32) {
+    throw new Error(
+      `${name} must be a strong secret with at least 32 characters`,
+    );
+  }
 }

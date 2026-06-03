@@ -15,8 +15,11 @@ describe('AppController', () => {
   });
 
   describe('root', () => {
-    it('should return "Hello World!"', () => {
-      expect(appController.getHello()).toBe('Hello World!');
+    it('should return API health metadata', () => {
+      expect(appController.getHealth()).toEqual({
+        name: 'Alih Daya Attendance API',
+        status: 'ok',
+      });
     });
   });
 });

@@ -1,6 +1,12 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+} from '@nestjs/common';
+import { RoleName } from '@prisma/client';
 import { Workbook } from 'exceljs';
 import PDFDocument from 'pdfkit';
+import type { JwtUser } from '../common/decorators/current-user.decorator';
 import {
   formatDateOnly,
   getJakartaMonthRange,
@@ -14,34 +20,43 @@ import {
 } from './dto/report-query.dto';
 
 type ReportRow = Record<string, string | number | null | undefined>;
+type ReportScope = {
+  supervisorId?: string;
+};
 
 @Injectable()
 export class ReportService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async dailyAttendance(query: ReportQueryDto) {
+  async dailyAttendance(user: JwtUser, query: ReportQueryDto) {
+    const scope = await this.resolveReportScope(user);
+
     return this.prisma.attendance.findMany({
-      where: this.attendanceWhere(query),
+      where: this.attendanceWhere(query, scope),
       include: this.attendanceInclude(),
       orderBy: [{ attendanceDate: 'desc' }, { createdAt: 'desc' }],
     });
   }
 
-  async monthlyAttendance(query: MonthlyAttendanceQueryDto) {
+  async monthlyAttendance(user: JwtUser, query: MonthlyAttendanceQueryDto) {
     if (!/^\d{4}-\d{2}$/.test(query.month)) {
       throw new BadRequestException('month must use YYYY-MM format');
     }
 
+    const scope = await this.resolveReportScope(user);
     const { startDate, endDate } = getJakartaMonthRange(query.month);
 
     const attendances = await this.prisma.attendance.findMany({
-      where: this.attendanceWhere({
-        startDate: formatDateOnly(startDate),
-        endDate: formatDateOnly(endDate),
-        employeeId: query.employeeId,
-        clientId: query.clientId,
-        workLocationId: query.workLocationId,
-      }),
+      where: this.attendanceWhere(
+        {
+          startDate: formatDateOnly(startDate),
+          endDate: formatDateOnly(endDate),
+          employeeId: query.employeeId,
+          clientId: query.clientId,
+          workLocationId: query.workLocationId,
+        },
+        scope,
+      ),
       include: this.attendanceInclude(),
       orderBy: [
         { employee: { employeeNumber: 'asc' } },
@@ -83,13 +98,16 @@ export class ReportService {
     };
   }
 
-  async activityReport(query: ReportQueryDto) {
+  async activityReport(user: JwtUser, query: ReportQueryDto) {
+    const scope = await this.resolveReportScope(user);
+
     return this.prisma.dailyActivity.findMany({
       where: {
         deletedAt: null,
         employeeId: query.employeeId,
         activityDate: this.dateRange(query),
         employee: {
+          supervisorId: scope.supervisorId,
           assignments: {
             some: {
               clientId: query.clientId,
@@ -109,11 +127,23 @@ export class ReportService {
     });
   }
 
-  async clientReport(query: ReportQueryDto) {
+  async clientReport(user: JwtUser, query: ReportQueryDto) {
+    const scope = await this.resolveReportScope(user);
+
     return this.prisma.client.findMany({
       where: {
         id: query.clientId,
         deletedAt: null,
+        assignments: scope.supervisorId
+          ? {
+              some: {
+                deletedAt: null,
+                workLocationId: query.workLocationId,
+                employeeId: query.employeeId,
+                employee: { supervisorId: scope.supervisorId },
+              },
+            }
+          : undefined,
       },
       include: {
         locations: { where: { deletedAt: null } },
@@ -122,6 +152,9 @@ export class ReportService {
             deletedAt: null,
             workLocationId: query.workLocationId,
             employeeId: query.employeeId,
+            employee: scope.supervisorId
+              ? { supervisorId: scope.supervisorId }
+              : undefined,
           },
           include: {
             employee: { include: { user: true } },
@@ -134,12 +167,23 @@ export class ReportService {
     });
   }
 
-  async locationReport(query: ReportQueryDto) {
+  async locationReport(user: JwtUser, query: ReportQueryDto) {
+    const scope = await this.resolveReportScope(user);
+
     return this.prisma.workLocation.findMany({
       where: {
         id: query.workLocationId,
         clientId: query.clientId,
         deletedAt: null,
+        assignments: scope.supervisorId
+          ? {
+              some: {
+                deletedAt: null,
+                employeeId: query.employeeId,
+                employee: { supervisorId: scope.supervisorId },
+              },
+            }
+          : undefined,
       },
       include: {
         client: true,
@@ -147,6 +191,9 @@ export class ReportService {
           where: {
             deletedAt: null,
             employeeId: query.employeeId,
+            employee: scope.supervisorId
+              ? { supervisorId: scope.supervisorId }
+              : undefined,
           },
           include: {
             employee: { include: { user: true } },
@@ -158,8 +205,8 @@ export class ReportService {
     });
   }
 
-  async exportExcel(query: ExportReportQueryDto) {
-    const rows = await this.resolveExportRows(query);
+  async exportExcel(user: JwtUser, query: ExportReportQueryDto) {
+    const rows = await this.resolveExportRows(user, query);
     const workbook = new Workbook();
     const worksheet = workbook.addWorksheet('Report');
 
@@ -182,8 +229,8 @@ export class ReportService {
     return Buffer.from(buffer);
   }
 
-  async exportPdf(query: ExportReportQueryDto) {
-    const rows = await this.resolveExportRows(query);
+  async exportPdf(user: JwtUser, query: ExportReportQueryDto) {
+    const rows = await this.resolveExportRows(user, query);
 
     return new Promise<Buffer>((resolve) => {
       const doc = new PDFDocument({ margin: 32, size: 'A4' });
@@ -222,10 +269,11 @@ export class ReportService {
   }
 
   private async resolveExportRows(
+    user: JwtUser,
     query: ExportReportQueryDto,
   ): Promise<ReportRow[]> {
     if (query.type === 'daily-attendance') {
-      return this.attendanceRows(await this.dailyAttendance(query));
+      return this.attendanceRows(await this.dailyAttendance(user, query));
     }
 
     if (query.type === 'monthly-attendance') {
@@ -235,7 +283,7 @@ export class ReportService {
         );
       }
 
-      const monthly = await this.monthlyAttendance({
+      const monthly = await this.monthlyAttendance(user, {
         month: query.month,
         employeeId: query.employeeId,
         clientId: query.clientId,
@@ -245,17 +293,17 @@ export class ReportService {
     }
 
     if (query.type === 'activity') {
-      return this.activityRows(await this.activityReport(query));
+      return this.activityRows(await this.activityReport(user, query));
     }
 
     if (query.type === 'client') {
-      return this.clientRows(await this.clientReport(query));
+      return this.clientRows(await this.clientReport(user, query));
     }
 
-    return this.locationRows(await this.locationReport(query));
+    return this.locationRows(await this.locationReport(user, query));
   }
 
-  private attendanceWhere(query: ReportQueryDto) {
+  private attendanceWhere(query: ReportQueryDto, scope: ReportScope) {
     return {
       deletedAt: null,
       employeeId: query.employeeId,
@@ -263,6 +311,9 @@ export class ReportService {
       assignment: {
         clientId: query.clientId,
         workLocationId: query.workLocationId,
+      },
+      employee: {
+        supervisorId: scope.supervisorId,
       },
     };
   }
@@ -363,5 +414,30 @@ export class ReportService {
       .split('-')
       .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
       .join(' ');
+  }
+
+  private async resolveReportScope(user: JwtUser): Promise<ReportScope> {
+    const role = user.role as RoleName;
+
+    if (role === RoleName.ADMIN) {
+      return {};
+    }
+
+    if (role !== RoleName.SUPERVISOR) {
+      throw new ForbiddenException(
+        'Only admin or supervisor can access reports',
+      );
+    }
+
+    const supervisor = await this.prisma.supervisor.findFirst({
+      where: { userId: user.sub, deletedAt: null },
+      select: { id: true },
+    });
+
+    if (!supervisor) {
+      throw new ForbiddenException('Supervisor profile not found');
+    }
+
+    return { supervisorId: supervisor.id };
   }
 }
