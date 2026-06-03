@@ -89,10 +89,13 @@ jobs:
 
           docker compose config >/dev/null
           docker compose up -d postgres
-          docker compose build backend admin-web
           docker compose run --rm backend npm run prisma:deploy
           docker compose run --rm backend npm run prisma:seed
-          docker compose up -d --force-recreate --no-deps backend admin-web
+
+          docker compose build backend admin-web
+          docker compose stop backend admin-web || true
+          docker compose rm -f backend admin-web || true
+          docker compose up -d --build --no-deps backend admin-web
           docker compose up -d --remove-orphans nginx
           docker image prune -f
           docker compose ps
