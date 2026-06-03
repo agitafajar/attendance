@@ -2,9 +2,10 @@
 
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { CalendarClock } from "lucide-react";
+import { CalendarClock, Loader2, RotateCcw } from "lucide-react";
 import { AdminShell } from "@/components/app/admin-shell";
 import { useAuthGuard } from "@/components/app/use-auth-guard";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -80,8 +81,23 @@ export default function AttendancesPage() {
     enabled: isReady,
   });
 
+  const rows = attendancesQuery.data ?? [];
+  const activeFilterCount = [
+    filters.startDate,
+    filters.endDate,
+    filters.status,
+  ].filter(Boolean).length;
+
   function updateFilter(field: keyof typeof filters, value: string) {
     setFilters((current) => ({ ...current, [field]: value }));
+  }
+
+  function resetFilters() {
+    setFilters({
+      startDate: "",
+      endDate: "",
+      status: "",
+    });
   }
 
   return (
@@ -92,10 +108,19 @@ export default function AttendancesPage() {
     >
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <CalendarClock className="h-4 w-4" />
-            Filter Absensi
-          </CardTitle>
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <CalendarClock className="h-4 w-4" />
+              Filter Absensi
+            </CardTitle>
+            <div className="flex flex-wrap gap-2">
+              <SummaryChip label={`${activeFilterCount} active`} value="Filters" />
+              <SummaryChip
+                label={attendancesQuery.isLoading ? "Loading" : `${rows.length} rows`}
+                value="Result"
+              />
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="grid gap-3 md:grid-cols-3">
@@ -132,12 +157,21 @@ export default function AttendancesPage() {
               </Select>
             </div>
           </div>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Button variant="ghost" onClick={resetFilters}>
+              <RotateCcw className="h-4 w-4" />
+              Reset Filter
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
       <Card className="mt-4">
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0">
           <CardTitle>Daftar Absensi</CardTitle>
+          <span className="rounded-md border border-[#e2dccf] bg-[#fffaf0] px-2.5 py-1 text-xs font-semibold text-[#667063]">
+            {rows.length} rows
+          </span>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
@@ -155,7 +189,7 @@ export default function AttendancesPage() {
                 </tr>
               </thead>
               <tbody>
-                {attendancesQuery.data?.map((attendance) => (
+                {rows.map((attendance) => (
                   <tr key={attendance.id} className="border-b border-neutral-100">
                     <td className="py-3 pr-4">{formatDate(attendance.attendanceDate)}</td>
                     <td className="py-3 pr-4">
@@ -186,14 +220,17 @@ export default function AttendancesPage() {
                 {!attendancesQuery.isLoading && !attendancesQuery.data?.length ? (
                   <tr>
                     <td className="py-6 text-neutral-500" colSpan={8}>
-                      Belum ada data absensi.
+                      Belum ada data absensi untuk filter ini.
                     </td>
                   </tr>
                 ) : null}
                 {attendancesQuery.isLoading ? (
                   <tr>
-                    <td className="py-6 text-neutral-500" colSpan={8}>
-                      Memuat data...
+                    <td className="py-8 text-neutral-500" colSpan={8}>
+                      <span className="inline-flex items-center gap-2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Memuat data absensi...
+                      </span>
                     </td>
                   </tr>
                 ) : null}
@@ -213,4 +250,13 @@ function formatDate(value: string) {
 function formatDateTime(value?: string | null) {
   if (!value) return "-";
   return new Date(value).toLocaleString("id-ID");
+}
+
+function SummaryChip({ label, value }: { label: string; value: string }) {
+  return (
+    <span className="inline-flex items-center gap-2 rounded-md border border-[#e2dccf] bg-[#fffaf0] px-2.5 py-1 text-xs">
+      <span className="font-semibold text-[#17211d]">{label}</span>
+      <span className="text-[#667063]">{value}</span>
+    </span>
+  );
 }

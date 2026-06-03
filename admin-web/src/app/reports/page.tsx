@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Download, FileText } from "lucide-react";
+import { Download, FileSpreadsheet, FileText, Loader2, RotateCcw } from "lucide-react";
 import { AdminShell } from "@/components/app/admin-shell";
 import { useAuthGuard } from "@/components/app/use-auth-guard";
 import { Button } from "@/components/ui/button";
@@ -120,15 +120,20 @@ const columnsByType: Record<ReportType, Array<{ key: string; label: string }>> =
 
 export default function ReportsPage() {
   const { user, isReady } = useAuthGuard({ allowedRoles: REPORT_ROLES });
+  const defaultMonth = new Date().toISOString().slice(0, 7);
   const [filters, setFilters] = useState({
     reportType: "daily-attendance" as ReportType,
     startDate: "",
     endDate: "",
-    month: new Date().toISOString().slice(0, 7),
+    month: defaultMonth,
     employeeId: "",
     clientId: "",
     workLocationId: "",
   });
+  const [downloadingFormat, setDownloadingFormat] = useState<"excel" | "pdf" | null>(
+    null,
+  );
+  const [downloadError, setDownloadError] = useState("");
 
   const selectedReport = reportTypes.find((item) => item.value === filters.reportType)!;
 
@@ -184,6 +189,15 @@ export default function ReportsPage() {
 
   const rows = getRows(reportQuery.data);
   const columns = columnsByType[filters.reportType];
+  const previewRows = rows.slice(0, 50);
+  const activeFilterCount = [
+    filters.startDate,
+    filters.endDate,
+    filters.employeeId,
+    filters.clientId,
+    filters.workLocationId,
+    filters.reportType === "monthly-attendance" ? filters.month : "",
+  ].filter(Boolean).length;
 
   function updateFilter(field: keyof typeof filters, value: string) {
     setFilters((current) => {
@@ -199,19 +213,46 @@ export default function ReportsPage() {
     });
   }
 
+  function resetFilters() {
+    setFilters((current) => ({
+      ...current,
+      startDate: "",
+      endDate: "",
+      month: defaultMonth,
+      employeeId: "",
+      clientId: "",
+      workLocationId: "",
+    }));
+    setDownloadError("");
+  }
+
   async function download(format: "excel" | "pdf") {
     const params = new URLSearchParams(queryString);
     params.set("type", filters.reportType);
 
-    const { data } = await api.get<Blob>(`/reports/export/${format}?${params.toString()}`, {
-      responseType: "blob",
-    });
-    const url = window.URL.createObjectURL(data);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `${filters.reportType}-report.${format === "excel" ? "xlsx" : "pdf"}`;
-    link.click();
-    window.URL.revokeObjectURL(url);
+    setDownloadingFormat(format);
+    setDownloadError("");
+
+    try {
+      const { data } = await api.get<Blob>(
+        `/reports/export/${format}?${params.toString()}`,
+        {
+          responseType: "blob",
+        },
+      );
+      const url = window.URL.createObjectURL(data);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${filters.reportType}-report.${
+        format === "excel" ? "xlsx" : "pdf"
+      }`;
+      link.click();
+      window.URL.revokeObjectURL(url);
+    } catch {
+      setDownloadError("Gagal export report. Cek filter atau coba beberapa saat lagi.");
+    } finally {
+      setDownloadingFormat(null);
+    }
   }
 
   return (
@@ -222,10 +263,20 @@ export default function ReportsPage() {
     >
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileText className="h-4 w-4" />
-            Filter Report
-          </CardTitle>
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              Filter Report
+            </CardTitle>
+            <div className="flex flex-wrap gap-2">
+              <SummaryChip label={selectedReport.label} value="Selected" />
+              <SummaryChip label={`${activeFilterCount} active`} value="Filters" />
+              <SummaryChip
+                label={reportQuery.isLoading ? "Loading" : `${rows.length} rows`}
+                value="Preview"
+              />
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="grid gap-3 lg:grid-cols-4">
@@ -322,30 +373,54 @@ export default function ReportsPage() {
             </div>
           </div>
 
-          <div className="mt-4 flex flex-wrap gap-2">
-            <Button onClick={() => download("excel")} disabled={reportQuery.isLoading}>
-              <Download className="h-4 w-4" />
-              Excel
+          {downloadError ? (
+            <div className="mt-4 rounded-md border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
+              {downloadError}
+            </div>
+          ) : null}
+
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <Button
+              onClick={() => download("excel")}
+              disabled={reportQuery.isLoading || Boolean(downloadingFormat)}
+            >
+              {downloadingFormat === "excel" ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <FileSpreadsheet className="h-4 w-4" />
+              )}
+              Export Excel
             </Button>
             <Button
               variant="outline"
               onClick={() => download("pdf")}
-              disabled={reportQuery.isLoading}
+              disabled={reportQuery.isLoading || Boolean(downloadingFormat)}
             >
-              <Download className="h-4 w-4" />
-              PDF
+              {downloadingFormat === "pdf" ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4" />
+              )}
+              Export PDF
+            </Button>
+            <Button variant="ghost" onClick={resetFilters} disabled={Boolean(downloadingFormat)}>
+              <RotateCcw className="h-4 w-4" />
+              Reset Filter
             </Button>
           </div>
         </CardContent>
       </Card>
 
       <Card className="mt-4">
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0">
           <CardTitle>{selectedReport.label} Preview</CardTitle>
+          <span className="rounded-md border border-[#e2dccf] bg-[#fffaf0] px-2.5 py-1 text-xs font-semibold text-[#667063]">
+            {previewRows.length} / {rows.length} rows
+          </span>
         </CardHeader>
         <CardContent>
           {reportQuery.isError ? (
-            <div className="mb-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+            <div className="mb-4 rounded-md border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
               Gagal memuat report. Cek filter atau role akun.
             </div>
           ) : null}
@@ -362,7 +437,7 @@ export default function ReportsPage() {
                 </tr>
               </thead>
               <tbody>
-                {rows.slice(0, 50).map((row, index) => (
+                {previewRows.map((row, index) => (
                   <tr key={index} className="border-b border-neutral-100">
                     {columns.map((column) => (
                       <td key={column.key} className="py-3 pr-4">
@@ -374,14 +449,17 @@ export default function ReportsPage() {
                 {!reportQuery.isLoading && !rows.length ? (
                   <tr>
                     <td className="py-6 text-neutral-500" colSpan={columns.length}>
-                      Belum ada data report.
+                      Belum ada data untuk kombinasi filter ini.
                     </td>
                   </tr>
                 ) : null}
                 {reportQuery.isLoading ? (
                   <tr>
-                    <td className="py-6 text-neutral-500" colSpan={columns.length}>
-                      Memuat data...
+                    <td className="py-8 text-neutral-500" colSpan={columns.length}>
+                      <span className="inline-flex items-center gap-2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Memuat data report...
+                      </span>
                     </td>
                   </tr>
                 ) : null}
@@ -468,4 +546,13 @@ function formatReportCell(row: unknown, key: string) {
   }
 
   return formatValue(value);
+}
+
+function SummaryChip({ label, value }: { label: string; value: string }) {
+  return (
+    <span className="inline-flex items-center gap-2 rounded-md border border-[#e2dccf] bg-[#fffaf0] px-2.5 py-1 text-xs">
+      <span className="font-semibold text-[#17211d]">{label}</span>
+      <span className="text-[#667063]">{value}</span>
+    </span>
+  );
 }
