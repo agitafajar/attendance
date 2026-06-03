@@ -11,6 +11,7 @@ import { DailyActivityModule } from './daily-activity/daily-activity.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { LeaveModule } from './leave/leave.module';
 import { MasterDataModule } from './master-data/master-data.module';
+import { MobileModule } from './mobile/mobile.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { ReportModule } from './report/report.module';
 import { RolesModule } from './roles/roles.module';
@@ -36,6 +37,7 @@ import { validateEnv } from './config/env.validation';
     ApprovalModule,
     LeaveModule,
     MasterDataModule,
+    MobileModule,
     DashboardModule,
     ReportModule,
     UploadModule,

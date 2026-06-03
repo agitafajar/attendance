@@ -11,6 +11,8 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { RoleName } from '@prisma/client';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
+import type { JwtUser } from '../common/decorators/current-user.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
@@ -39,8 +41,8 @@ export class MasterDataController {
   constructor(private readonly masterDataService: MasterDataService) {}
 
   @Get('clients')
-  listClients() {
-    return this.masterDataService.listClients();
+  listClients(@CurrentUser() user: JwtUser) {
+    return this.masterDataService.listClients(user);
   }
 
   @Post('clients')
@@ -62,8 +64,11 @@ export class MasterDataController {
   }
 
   @Get('work-locations')
-  listWorkLocations(@Query('clientId') clientId?: string) {
-    return this.masterDataService.listWorkLocations(clientId);
+  listWorkLocations(
+    @CurrentUser() user: JwtUser,
+    @Query('clientId') clientId?: string,
+  ) {
+    return this.masterDataService.listWorkLocations(user, clientId);
   }
 
   @Post('work-locations')
@@ -88,8 +93,8 @@ export class MasterDataController {
   }
 
   @Get('shifts')
-  listShifts() {
-    return this.masterDataService.listShifts();
+  listShifts(@CurrentUser() user: JwtUser) {
+    return this.masterDataService.listShifts(user);
   }
 
   @Post('shifts')
@@ -111,8 +116,8 @@ export class MasterDataController {
   }
 
   @Get('supervisors')
-  listSupervisors() {
-    return this.masterDataService.listSupervisors();
+  listSupervisors(@CurrentUser() user: JwtUser) {
+    return this.masterDataService.listSupervisors(user);
   }
 
   @Post('supervisors')
@@ -134,8 +139,8 @@ export class MasterDataController {
   }
 
   @Get('employees')
-  listEmployees() {
-    return this.masterDataService.listEmployees();
+  listEmployees(@CurrentUser() user: JwtUser) {
+    return this.masterDataService.listEmployees(user);
   }
 
   @Post('employees')
@@ -157,8 +162,11 @@ export class MasterDataController {
   }
 
   @Get('assignments')
-  listAssignments(@Query('employeeId') employeeId?: string) {
-    return this.masterDataService.listAssignments(employeeId);
+  listAssignments(
+    @CurrentUser() user: JwtUser,
+    @Query('employeeId') employeeId?: string,
+  ) {
+    return this.masterDataService.listAssignments(user, employeeId);
   }
 
   @Post('assignments')

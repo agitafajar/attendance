@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { RoleName } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import type { JwtUser } from '../common/decorators/current-user.decorator';
 import { toJakartaDateOnly } from '../common/date/jakarta-date';
 import { PrismaService } from '../prisma/prisma.service';
 import {
@@ -26,9 +27,24 @@ import {
 export class MasterDataService {
   constructor(private readonly prisma: PrismaService) {}
 
-  listClients() {
+  async listClients(user: JwtUser) {
+    const scope = await this.resolveSupervisorScope(user);
+
     return this.prisma.client.findMany({
-      where: { deletedAt: null },
+      where: {
+        deletedAt: null,
+        assignments: scope.supervisorId
+          ? {
+              some: {
+                deletedAt: null,
+                employee: {
+                  deletedAt: null,
+                  supervisorId: scope.supervisorId,
+                },
+              },
+            }
+          : undefined,
+      },
       orderBy: { name: 'asc' },
     });
   }
@@ -48,9 +64,25 @@ export class MasterDataService {
     });
   }
 
-  listWorkLocations(clientId?: string) {
+  async listWorkLocations(user: JwtUser, clientId?: string) {
+    const scope = await this.resolveSupervisorScope(user);
+
     return this.prisma.workLocation.findMany({
-      where: { clientId, deletedAt: null },
+      where: {
+        clientId,
+        deletedAt: null,
+        assignments: scope.supervisorId
+          ? {
+              some: {
+                deletedAt: null,
+                employee: {
+                  deletedAt: null,
+                  supervisorId: scope.supervisorId,
+                },
+              },
+            }
+          : undefined,
+      },
       include: { client: true },
       orderBy: { name: 'asc' },
     });
@@ -71,9 +103,24 @@ export class MasterDataService {
     });
   }
 
-  listShifts() {
+  async listShifts(user: JwtUser) {
+    const scope = await this.resolveSupervisorScope(user);
+
     return this.prisma.shift.findMany({
-      where: { deletedAt: null },
+      where: {
+        deletedAt: null,
+        assignments: scope.supervisorId
+          ? {
+              some: {
+                deletedAt: null,
+                employee: {
+                  deletedAt: null,
+                  supervisorId: scope.supervisorId,
+                },
+              },
+            }
+          : undefined,
+      },
       orderBy: { code: 'asc' },
     });
   }
@@ -111,9 +158,14 @@ export class MasterDataService {
     });
   }
 
-  listSupervisors() {
+  async listSupervisors(user: JwtUser) {
+    const scope = await this.resolveSupervisorScope(user);
+
     return this.prisma.supervisor.findMany({
-      where: { deletedAt: null },
+      where: {
+        deletedAt: null,
+        id: scope.supervisorId,
+      },
       include: { user: { include: { role: true } } },
       orderBy: { createdAt: 'desc' },
     });
@@ -183,9 +235,14 @@ export class MasterDataService {
     });
   }
 
-  listEmployees() {
+  async listEmployees(user: JwtUser) {
+    const scope = await this.resolveSupervisorScope(user);
+
     return this.prisma.employee.findMany({
-      where: { deletedAt: null },
+      where: {
+        deletedAt: null,
+        supervisorId: scope.supervisorId,
+      },
       include: {
         user: { include: { role: true } },
         supervisor: { include: { user: true } },
@@ -248,9 +305,20 @@ export class MasterDataService {
     });
   }
 
-  listAssignments(employeeId?: string) {
+  async listAssignments(user: JwtUser, employeeId?: string) {
+    const scope = await this.resolveSupervisorScope(user);
+
     return this.prisma.employeeAssignment.findMany({
-      where: { employeeId, deletedAt: null },
+      where: {
+        employeeId,
+        deletedAt: null,
+        employee: scope.supervisorId
+          ? {
+              deletedAt: null,
+              supervisorId: scope.supervisorId,
+            }
+          : undefined,
+      },
       include: {
         employee: { include: { user: true } },
         client: true,
@@ -325,6 +393,29 @@ export class MasterDataService {
     }
 
     return role;
+  }
+
+  private async resolveSupervisorScope(user: JwtUser) {
+    const role = user.role as RoleName;
+
+    if (role === RoleName.ADMIN) {
+      return {};
+    }
+
+    if (role !== RoleName.SUPERVISOR) {
+      return {};
+    }
+
+    const supervisor = await this.prisma.supervisor.findFirst({
+      where: { userId: user.sub, deletedAt: null },
+      select: { id: true },
+    });
+
+    if (!supervisor) {
+      throw new NotFoundException('Supervisor profile not found');
+    }
+
+    return { supervisorId: supervisor.id };
   }
 
   private parseTime(value: string) {
