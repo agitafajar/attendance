@@ -18,6 +18,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { api } from "@/lib/api";
+import { APP_VERSION } from "@/lib/app-version";
 import { saveAuthSession } from "@/lib/auth-storage";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -247,6 +248,7 @@ export default function LoginPage() {
 
             <div className="mt-8 text-center text-xs text-[var(--muted)]">
               <p>Alih Daya Attendance Admin</p>
+              <p className="mt-0.5">v{APP_VERSION}</p>
               <p className="mt-0.5">&copy; 2024 All rights reserved.</p>
             </div>
           </div>

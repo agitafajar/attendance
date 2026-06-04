@@ -36,7 +36,7 @@ async function main() {
 
   const admin = await prisma.user.upsert({
     where: { email: 'admin@alihdaya.test' },
-    update: {},
+    update: { fullName: 'Admin Alih Daya', phone: '081100000001' },
     create: {
       email: 'admin@alihdaya.test',
       fullName: 'Admin Alih Daya',
@@ -48,10 +48,10 @@ async function main() {
 
   const supervisorUser = await prisma.user.upsert({
     where: { email: 'supervisor@alihdaya.test' },
-    update: {},
+    update: { fullName: 'Siti Supervisor', phone: '081100000002' },
     create: {
       email: 'supervisor@alihdaya.test',
-      fullName: 'Supervisor Lapangan',
+      fullName: 'Siti Supervisor',
       passwordHash,
       roleId: supervisorRole.id,
       phone: '081100000002',
@@ -60,10 +60,10 @@ async function main() {
 
   const employeeUser = await prisma.user.upsert({
     where: { email: 'employee@alihdaya.test' },
-    update: {},
+    update: { fullName: 'Budi Santoso', phone: '081100000003' },
     create: {
       email: 'employee@alihdaya.test',
-      fullName: 'Karyawan Dummy',
+      fullName: 'Budi Santoso',
       passwordHash,
       roleId: employeeRole.id,
       phone: '081100000003',
@@ -94,12 +94,17 @@ async function main() {
 
   const client = await prisma.client.upsert({
     where: { code: 'CL-001' },
-    update: {},
+    update: {
+      name: 'PT Bank ABC',
+      address: 'Jl. Tuanku Dorong Hutagalung No.18, Sibolga',
+      contactName: 'Rina Operasional',
+      contactPhone: '081100000004',
+    },
     create: {
       code: 'CL-001',
-      name: 'PT Contoh Klien',
-      address: 'Jl. Sudirman No. 1, Jakarta',
-      contactName: 'Budi Santoso',
+      name: 'PT Bank ABC',
+      address: 'Jl. Tuanku Dorong Hutagalung No.18, Sibolga',
+      contactName: 'Rina Operasional',
       contactPhone: '081100000004',
     },
   });
@@ -108,23 +113,33 @@ async function main() {
     where: {
       clientId_name: {
         clientId: client.id,
-        name: 'Kantor Pusat Klien',
+        name: 'Cabang Medan',
       },
     },
-    update: {},
+    update: {
+      address: 'Jl. Tuanku Dorong Hutagalung No.18, Sibolga',
+      latitude: 1.7403745,
+      longitude: 98.7827981,
+      geofenceRadiusMeter: 150,
+    },
     create: {
       clientId: client.id,
-      name: 'Kantor Pusat Klien',
-      address: 'Jl. Sudirman No. 1, Jakarta',
-      latitude: -6.2087634,
-      longitude: 106.845599,
+      name: 'Cabang Medan',
+      address: 'Jl. Tuanku Dorong Hutagalung No.18, Sibolga',
+      latitude: 1.7403745,
+      longitude: 98.7827981,
       geofenceRadiusMeter: 150,
     },
   });
 
   const shift = await prisma.shift.upsert({
     where: { code: 'SHIFT-PAGI' },
-    update: {},
+    update: {
+      name: 'Shift Pagi',
+      startTime: new Date('1970-01-01T08:00:00.000Z'),
+      endTime: new Date('1970-01-01T17:00:00.000Z'),
+      gracePeriodMinutes: 10,
+    },
     create: {
       code: 'SHIFT-PAGI',
       name: 'Shift Pagi',
@@ -154,6 +169,55 @@ async function main() {
       isActive: true,
     },
   });
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const existingLeave = await prisma.leaveRequest.findFirst({
+    where: {
+      employeeId: employee.id,
+      startDate: today,
+      type: 'SICK',
+      deletedAt: null,
+    },
+  });
+
+  if (!existingLeave) {
+    await prisma.leaveRequest.create({
+      data: {
+        employeeId: employee.id,
+        type: 'SICK',
+        startDate: today,
+        endDate: today,
+        reason: 'Demo pengajuan sakit untuk antrian approval supervisor.',
+        status: 'SUBMITTED',
+      },
+    });
+  }
+
+  const existingActivity = await prisma.dailyActivity.findFirst({
+    where: {
+      employeeId: employee.id,
+      activityDate: today,
+      title: 'Patroli area lobby',
+      deletedAt: null,
+    },
+  });
+
+  if (!existingActivity) {
+    await prisma.dailyActivity.create({
+      data: {
+        employeeId: employee.id,
+        activityDate: today,
+        title: 'Patroli area lobby',
+        description:
+          'Melakukan patroli area lobby, pengecekan akses tamu, dan memastikan kondisi area aman.',
+        latitude: 1.7403745,
+        longitude: 98.7827981,
+        status: 'SUBMITTED',
+      },
+    });
+  }
 
   console.log({
     message: 'Seed completed with demo data',

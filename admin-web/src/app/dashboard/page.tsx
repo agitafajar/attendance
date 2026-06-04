@@ -9,6 +9,7 @@ import {
   CalendarCheck,
   ClipboardCheck,
   Clock,
+  Server,
   NotebookTabs,
   ShieldCheck,
   Users,
@@ -17,6 +18,7 @@ import { api } from "@/lib/api";
 import { type RoleName } from "@/lib/auth-storage";
 import { AdminShell } from "@/components/app/admin-shell";
 import { useAuthGuard } from "@/components/app/use-auth-guard";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DashboardSkeleton, QueryErrorState } from "@/components/ui/table-state";
 
@@ -71,6 +73,14 @@ type EmployeeDashboard = {
 
 type DashboardResponse = AdminDashboard | SupervisorDashboard | EmployeeDashboard;
 
+type HealthResponse = {
+  name: string;
+  status: string;
+  version?: string;
+  environment?: string;
+  checkedAt?: string;
+};
+
 const endpointByRole: Record<RoleName, string> = {
   ADMIN: "/dashboard/admin",
   SUPERVISOR: "/dashboard/supervisor",
@@ -94,6 +104,16 @@ export default function DashboardPage() {
     enabled: isReady && Boolean(role),
   });
 
+  const healthQuery = useQuery({
+    queryKey: ["api-health"],
+    queryFn: async () => {
+      const { data } = await api.get<HealthResponse>("/");
+      return data;
+    },
+    enabled: isReady && role === "ADMIN",
+    staleTime: 60_000,
+  });
+
   return (
     <AdminShell
       title="Dashboard"
@@ -111,7 +131,13 @@ export default function DashboardPage() {
       {dashboardQuery.isLoading ? <DashboardSkeleton /> : null}
 
       {!dashboardQuery.isLoading && !dashboardQuery.isError && role === "ADMIN" ? (
-        <AdminDashboardView dashboard={dashboardQuery.data as AdminDashboard | undefined} />
+        <AdminDashboardView
+          dashboard={dashboardQuery.data as AdminDashboard | undefined}
+          health={healthQuery.data}
+          isHealthLoading={healthQuery.isLoading}
+          isHealthError={healthQuery.isError}
+          onRefreshHealth={() => healthQuery.refetch()}
+        />
       ) : null}
 
       {!dashboardQuery.isLoading && !dashboardQuery.isError && role === "SUPERVISOR" ? (
@@ -129,7 +155,19 @@ export default function DashboardPage() {
   );
 }
 
-function AdminDashboardView({ dashboard }: { dashboard?: AdminDashboard }) {
+function AdminDashboardView({
+  dashboard,
+  health,
+  isHealthLoading,
+  isHealthError,
+  onRefreshHealth,
+}: {
+  dashboard?: AdminDashboard;
+  health?: HealthResponse;
+  isHealthLoading: boolean;
+  isHealthError: boolean;
+  onRefreshHealth: () => void;
+}) {
   return (
     <>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -194,7 +232,70 @@ function AdminDashboardView({ dashboard }: { dashboard?: AdminDashboard }) {
           </div>
         </CardContent>
       </Card>
+
+      <SystemHealthCard
+        health={health}
+        isLoading={isHealthLoading}
+        isError={isHealthError}
+        onRefresh={onRefreshHealth}
+      />
     </>
+  );
+}
+
+function SystemHealthCard({
+  health,
+  isLoading,
+  isError,
+  onRefresh,
+}: {
+  health?: HealthResponse;
+  isLoading: boolean;
+  isError: boolean;
+  onRefresh: () => void;
+}) {
+  const checkedAt = health?.checkedAt
+    ? new Intl.DateTimeFormat("id-ID", {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }).format(new Date(health.checkedAt))
+    : "-";
+
+  return (
+    <Card className="mt-4 border-[var(--border)] bg-[var(--surface)]">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0">
+        <div>
+          <CardTitle className="text-base text-[var(--foreground)]">
+            System Health
+          </CardTitle>
+          <p className="mt-1 text-sm text-[var(--muted)]">
+            Status backend API yang sedang digunakan dashboard.
+          </p>
+        </div>
+        <div className="hidden h-10 w-10 items-center justify-center rounded-md bg-[var(--brand-950)] text-[var(--brand-500)] sm:flex">
+          <Server className="h-5 w-5" />
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="grid gap-3 text-sm sm:grid-cols-4">
+          <SmallStat
+            label="Status"
+            valueText={isLoading ? "Checking..." : isError ? "Error" : health?.status ?? "-"}
+          />
+          <SmallStat label="Version" valueText={health?.version ?? "-"} />
+          <SmallStat label="Environment" valueText={health?.environment ?? "-"} />
+          <SmallStat label="Checked At" valueText={checkedAt} />
+        </div>
+        <Button
+          variant="outline"
+          className="mt-4 h-9"
+          onClick={onRefresh}
+          disabled={isLoading}
+        >
+          Refresh Health
+        </Button>
+      </CardContent>
+    </Card>
   );
 }
 

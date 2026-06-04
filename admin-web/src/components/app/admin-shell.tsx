@@ -18,6 +18,7 @@ import {
   Users,
 } from "lucide-react";
 import { clearAuthSession, type AuthUser, type RoleName } from "@/lib/auth-storage";
+import { APP_VERSION } from "@/lib/app-version";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
@@ -128,6 +129,9 @@ export function AdminShell({
             );
           })}
         </nav>
+        <div className="absolute inset-x-0 bottom-0 border-t border-white/10 px-5 py-4">
+          <p className="text-xs font-medium text-white/45">Admin Web v{APP_VERSION}</p>
+        </div>
       </aside>
 
       <section className="lg:pl-[17rem]">
