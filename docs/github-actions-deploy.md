@@ -39,6 +39,30 @@ cat ~/.ssh/attendance_github_actions
 
 Make sure the VPS project folder already has a production `.env` file. The workflow excludes `.env` files on purpose so secrets are not overwritten by repository files.
 
+You can start from the repository template:
+
+```bash
+cd /home/ubuntu/alih-daya-attendance
+cp .env.production.example .env
+nano .env
+```
+
+At minimum, replace:
+
+- `POSTGRES_PASSWORD`
+- `DATABASE_URL`
+- `JWT_SECRET`
+- `JWT_REFRESH_SECRET`
+- `APP_URL`
+- `CORS_ORIGIN`
+- `MOBILE_API_BASE_URL`
+
+Generate strong secrets with:
+
+```bash
+openssl rand -base64 48
+```
+
 ## First Deploy
 
 After adding the secrets, push to `main` or run the workflow manually from GitHub Actions.
